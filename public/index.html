@@ -192,7 +192,7 @@ function App() {
   );
 
   // ── game ────────────────────────────────────────────────
-  if(!G) return <div style={{padding:20,color:'var(--mut)'}}>Connecting…</div>;
+  if(!G || pi === null || !G.players[pi]) return <div style={{padding:20,color:'var(--mut)'}}>Connecting…</div>;
 
   const me = G.players[pi];
   const myTurn = G.cur === pi && !G.over && !G.pendingReaction && !G.pendingModal;
