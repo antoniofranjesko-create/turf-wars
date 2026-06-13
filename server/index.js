@@ -269,10 +269,13 @@ function handleReaction(roomCode, pi, action) {
 io.on('connection', socket => {
   socket.on('create_room', ({ name, np }) => {
     const code = randCode();
-    rooms[code] = { G: null, sockets: {}, names: [name], np: parseInt(np) };
+    const npInt = parseInt(np);
+    rooms[code] = { G: null, sockets: {}, names: [name], np: npInt };
     rooms[code].sockets[0] = socket.id;
     socket.join(code);
     socket.emit('room_created', { code, pi: 0 });
+    io.to(code).emit('lobby', { names: [name], np: npInt });
+    console.log(`Room ${code} created by ${name}, waiting for ${npInt} players`);
   });
   socket.on('join_room', ({ code, name }) => {
     const room = rooms[code];
