@@ -277,6 +277,25 @@ io.on('connection', socket => {
   socket.on('join_room', ({ code, name }) => {
     const room = rooms[code];
     if(!room) return socket.emit('error', 'Room not found.');
+    if(room.G) {
+      const existing = room.names.indexOf(name);
+      if(existing >= 0) {
+        room.sockets[existing] = socket.id;
+        socket.join(code);
+        socket.emit('room_joined', { code, pi: existing });
+        socket.emit('state', projectFor(room.G, existing));
+        return;
+      }
+      return socket.emit('error', 'Game already in progress.');
+    }
+    const existingIdx = room.names.indexOf(name);
+    if(existingIdx >= 0) {
+      room.sockets[existingIdx] = socket.id;
+      socket.join(code);
+      socket.emit('room_joined', { code, pi: existingIdx });
+      io.to(code).emit('lobby', { names: room.names, np: room.np });
+      return;
+    }
     if(Object.keys(room.sockets).length >= room.np) return socket.emit('error', 'Room is full.');
     const pi = room.names.length;
     room.names.push(name); room.sockets[pi] = socket.id;
@@ -287,7 +306,7 @@ io.on('connection', socket => {
       room.G = newGame(room.np, room.names);
       startTriggers(room.G, 0, room);
       log(room, `Game started — ${room.np} players.`, 'sys');
-      broadcast(code);
+      setTimeout(() => broadcast(code), 300);
     }
   });
   socket.on('action',   ({ code, pi, action }) => handleAction(code, pi, action));
