@@ -141,7 +141,7 @@ function App() {
     socket.on('room_created', ({code, pi: p}) => { setRoomCode(code); setPi(p); piRef.current=p; setPhase('waiting'); setLN([name]); });
     socket.on('room_joined',  ({code, pi: p}) => { setRoomCode(code); setPi(p); piRef.current=p; setPhase('waiting'); });
     socket.on('lobby', ({names, np: n}) => { setLN(names); setNp(n); });
-    socket.on('state',        g => { setG(g); if(g.over) setModal(null); });
+    socket.on('state',        g => { setG(g); setPhase('game'); if(g.over) setModal(null); });
     socket.on('error',        msg => setError(msg));
     socket.on('stakeout',     data => setStakeout(data));
     socket.on('scout',        ({top}) => setScout(top));
