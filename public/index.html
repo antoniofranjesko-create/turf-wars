@@ -190,7 +190,12 @@ function App() {
       <div className="waiting">Game starts automatically when all players join.</div>
     </div>
   );
-
+useEffect(() => {
+    if(scoutCards && G && pi !== null && G.pendingModal && pi === G.pendingModal.pi) {
+      ask('Scout — keep which card?', scoutCards.filter(c=>c.n!=='Rat'&&!c.n.startsWith('WD:')).map(c=>({label:c.n,value:c.id,sub:DEFS[c.n]?.ds})),
+        id => { act({type:'SCOUT_KEEP', cardId:id}); setScout(null); });
+    }
+  }, [scoutCards, G]);
   // ── game ────────────────────────────────────────────────
   if(!G || pi === null || !G.players[pi]) return <div style={{padding:20,color:'var(--mut)'}}>Connecting…</div>;
 
@@ -354,12 +359,6 @@ function App() {
     }
     if(c.n === 'Scout') { act({type:'PLAY_SCOUT', cardId}); return; }
   }
-
-  // Scout card selection
-  useEffect(() => {
-    if(scoutCards && pi === G?.pendingModal?.pi) {
-      ask('Scout — keep which card?', scoutCards.filter(c=>c.n!=='Rat'&&!c.n.startsWith('WD:')).map(c=>({label:c.n,value:c.id,sub:DEFS[c.n]?.ds})),
-        id => { act({type:'SCOUT_KEEP', cardId:id}); setScout(null); });
     }
   }, [scoutCards]);
 
