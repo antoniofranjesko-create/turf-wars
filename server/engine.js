@@ -10,7 +10,7 @@ const DECK_TABLE = {
   "Exterminator":[2,2,2,2,2], "Mark":[2,2,2,2,2],
   "Mark 2.0":[1,1,1,1,1], "Ambush":[1,1,2,2,2],
   "Stakeout":[2,2,3,4,4], "Shakedown":[2,2,3,4,4],
-  "Bounty":[2,2,3,4,4], "Laundering":[1,1,1,1,1],
+  "Inheritance":[2,2,3,4,4], "Laundering":[1,1,1,1,1],
   "Russian Roulette":[1,1,1,1,1], "Chilli":[2,2,3,4,4],
   "Rattatouli":[2,2,3,4,4], "Rat Dividend":[1,1,1,2,2],
   "Pregnant Rat":[1,1,1,1,1], "Redirect CW":[1,1,1,1,1],
