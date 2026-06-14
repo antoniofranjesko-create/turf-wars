@@ -117,8 +117,8 @@ const DEFS = {
   "Laundering":{cat:"control",ds:"Discard up to 3 cards. Draw the same number."},
   "Zone Swap":{cat:"control",ds:"Swap your entire rat zone with any other player's zone. 5-rat death checks apply immediately."},
   "Surge":{cat:"control",ds:"Draw 2 yourself OR force any player to draw 1."},
-  "Russian Roulette":{cat:"gamble",ds:"Uses 1 rat from the pile. Shuffled with 1 card from each other player. Everyone draws 1 blind.",boost:"Use a rat from your own zone instead."},
-  "Stakeout":{cat:"info",ds:"Look at one player's full hand.",boost:"Also get count of a named card."},
+  "Russian Roulette":{cat:"gamble",ds:"Uses 1 rat from the pile. Shuffled with 1 card from each other player. Everyone draws 1 blind.",boost:"Use a rat from your own zone instead."}
+  "Stakeout":{cat:"control",ds:"Name a card — target hands over 1 copy if held. (Same as Shakedown)",boost:"Take ALL copies of that card from target's hand."},
   "Scout":{cat:"info",ds:"Look at top 5 cards, keep 1. Others go back on top.",boost:"Keep 2."},
   "Chilli":{cat:"buff",ds:"Attach to opponent's rat. Detonates by end of your next turn: 1 HP. Blockable."},
   "Rattatouli":{cat:"buff",ds:"A rat in your zone becomes a Food card in your hand."},
@@ -377,7 +377,14 @@ function App() {
     if(c.n==='Exterminator'){askBoost(c,boost=>ask('Remove which rat?',zone.map((r,i)=>({label:ratLabel(r,i),value:i})),zi=>act({type:'PLAY_EXTERMINATOR',cardId,ratZi:zi,boost})));return;}
     if(c.n==='Mark'){ask('Mark whom?',oppList(),t=>act({type:'PLAY_MARK',cardId,target:t}));return;}
     if(c.n==='Mark 2.0'){ask('Mark 2.0 — whom?',oppList(),t=>act({type:'PLAY_MARK2',cardId,target:t}));return;}
-    if(c.n==='Stakeout'){askBoost(c,boost=>ask('Stake out whom?',oppList(),t=>act({type:'PLAY_STAKEOUT',cardId,target:t,boost})));return;}
+    if(c.n==='Stakeout'){
+      askBoost(c,boost=>{
+        ask('Shakedown 2.0 — whom?',oppList(p=>p.handCount>0||(p.hand&&p.hand.length>0)),t=>{
+          const cardOpts=[{label:'Hot Ratato (any)',value:'Hot Ratato',sub:'Matches all HR variants'},...Object.keys(DEFS).filter(n=>n!=='Rat'&&!n.startsWith('WD:')&&!n.startsWith('Hot Ratato')).map(n=>({label:n,value:n}))];
+          ask('Name the card you demand:',cardOpts,cardName=>act({type:'PLAY_STAKEOUT',cardId,target:t,cardName,boost}));
+        });
+      });return;
+    }
     if(c.n==='Shakedown'){askBoost(c,boost=>ask('Shake down whom?',oppList(p=>p.handCount>0||(p.hand&&p.hand.length>0)),t=>{
       const cardOpts=[{label:'Hot Ratato (any)',value:'Hot Ratato',sub:'Matches Hot Ratato 1, 2, 3, CCW'},...Object.keys(DEFS).filter(n=>n!=='Rat'&&!n.startsWith('WD:')&&!n.startsWith('Hot Ratato')).map(n=>({label:n,value:n}))];
       ask('Name the card you demand:',cardOpts,cardName=>act({type:'PLAY_SHAKEDOWN',cardId,target:t,cardName,boost}));
@@ -472,7 +479,7 @@ function App() {
               </h3>
               <div className="zone">
                 {p.zone.length===0&&<span className="meta">zone clear</span>}
-                {p.zone.map((r,idx)=><div key={r.id||idx} className={'rat'+((r.atts&&r.atts.length)?' ratt':'')} style={{display:'flex',flexDirection:'column',gap:2,padding:'3px 6px'}}><span>🐀 Rat {idx+1}</span>{r.atts&&r.atts.map((a,j)=><span key={j} className="att" style={{fontSize:10}}>↳ {a.card.n}{a.charges&&a.charges>1?` (${a.charges}×)`:''}</span>)}</div>)}
+                {p.zone.map((r,idx)=>{const atts=(r.atts||[]).concat(r.att?[r.att]:[]);return(<div key={r.id||idx} className={'rat'+(atts.length?' ratt':'')} style={{display:'flex',flexDirection:'column',gap:2,padding:'3px 6px'}}><span>🐀 Rat {idx+1}</span>{atts.map((a,j)=><span key={j} className="att" style={{fontSize:10}}>↳ {a.card&&a.card.n}{a.charges&&a.charges>1?` (${a.charges}×)`:''}</span>)}</div>);})}
               </div>
               <div className="meta">{p.i===pi?`${(me.hand||[]).length} cards`:`${p.handCount} cards`}</div>
             </div>
