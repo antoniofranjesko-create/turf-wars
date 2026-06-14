@@ -3,7 +3,7 @@
 
 const DECK_TABLE = {
   // SCALING
-  "Rat":[8,10,12,14,16],
+  "Rat":[9,11,13,15,17],
   "Health Inspection":[8,11,14,17,20],
   // FIXED at 8P quantities
   "Hot Ratato 1":[6,6,6,6,6],
@@ -14,7 +14,7 @@ const DECK_TABLE = {
   "Block":[8,8,8,8,8],
   "Food":[12,12,12,12,12],
   "Held Rat":[2,2,2,2,2],
-  "Infestation":[2,2,2,2,2],
+  "Infestation":[4,4,4,4,4],
   "Plague":[1,1,1,1,1],
   "Setup":[4,4,4,4,4],
   "Fortify":[5,5,5,5,5],
