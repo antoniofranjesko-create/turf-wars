@@ -192,7 +192,6 @@ function startTriggers(G, pi, room) {
   if(G.mark  && G.mark.placer===pi)  G.mark  = null;
   if(G.mark2 && G.mark2.placer===pi) G.mark2 = null;
   G.fusions = G.fusions.filter(f => f.placer !== pi);
-  // Rat Away — zone-wide: if player has active Rat Away, clear all zone rats
   if(G.ratAway && G.ratAway.includes(pi)) {
     G.ratAway = G.ratAway.filter(x=>x!==pi);
     const count = pl.zone.length;
