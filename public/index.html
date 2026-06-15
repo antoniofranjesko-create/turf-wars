@@ -112,7 +112,7 @@ const DEFS = {
   "Mark":{cat:"control",ds:"Next Health Inspection by anyone hits the marked player."},
   "Mark 2.0":{cat:"control",ds:"Next rat drawn from deck goes to named players zone."},
   "Setup":{cat:"control",ds:"Look at top 2 cards, keep 1. Other goes back on top.",boost:"Keep 2."},
-  "Shakedown":{cat:"control",ds:"Name a card — target hands over 1 copy if held.",boost:"See their hand first."},
+  "Shakedown":{cat:"control",ds:"Name a card - target hands over 1 copy if held.",boost:"See their hand first."},
   "Inheritance":{cat:"control",ds:"If target eliminated before your next turn, keep 2 of their cards.",boost:"Keep 4."},
   "Laundering":{cat:"control",ds:"Discard up to 3 cards. Draw the same number."},
   "Zone Swap":{cat:"control",ds:"Swap your entire rat zone with any other players zone. 5-rat death checks apply immediately."},
@@ -148,7 +148,7 @@ function PeekModal({pm, peekSel, setPeekSel, act, DEFS}) {
   const submit = () => act({type: kind==='SETUP'?'SETUP_KEEP':'SCOUT_KEEP', cardIds: peekSel});
   return (
     <div className="overlay"><div className="modal">
-      <h4>{kind} — choose {keep} card{keep>1?'s':''} to keep</h4>
+      <h4>{kind}: choose {keep} card(s) to keep</h4>
       <div className="opts">
         {(top||[]).map((c,i)=>(
           <button key={c.id} onClick={()=>toggle(c.id)}
@@ -236,7 +236,7 @@ function App() {
           Create Room
         </button>
       </div>
-      <div className="mut">— or join a friend's room —</div>
+      <div className="mut">or join a friends room</div>
       <div className="row">
         <input placeholder="Room code" value={joinCode} onChange={e=>setJoinCode(e.target.value.toUpperCase())} maxLength={4}/>
         <button disabled={!name.trim()||joinCode.length!==4}
