@@ -7,562 +7,1251 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
-<script src="/socket.io/socket.io.js"></script>
 <style>
-:root{--bg:#141216;--panel:#1f1c22;--panel2:#262229;--line:#39333f;--cream:#f4ead8;--ink:#2a2026;--amber:#ffb020;--red:#e0492f;--teal:#3fb8a0;--mut:#9b93a4}
-*{box-sizing:border-box;margin:0}
-body{background:var(--bg);color:var(--cream);font:15px/1.45 system-ui,-apple-system,sans-serif;padding:14px}
-button{font:inherit;cursor:pointer;border:1px solid var(--line);background:var(--panel2);color:var(--cream);border-radius:8px;padding:6px 12px}
-button:hover:not(:disabled){border-color:var(--amber)}button:disabled{opacity:.35;cursor:default}
-input{font:inherit;background:var(--panel2);border:1px solid var(--line);color:var(--cream);border-radius:8px;padding:8px 12px;width:100%}
-.title{font-family:ui-monospace,monospace;letter-spacing:3px;font-weight:700;color:var(--amber)}
-.lobby{max-width:520px;margin:50px auto;display:flex;flex-direction:column;gap:14px}
-.lobby h1{text-align:center}
-.lobby input{text-align:center}
-.row{display:flex;gap:10px}
-.row button{flex:1}
-.code{font-family:ui-monospace,monospace;font-size:32px;letter-spacing:8px;color:var(--amber);margin:8px 0;text-align:center}
-.slot{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 12px}
-.slot .sname{flex:1;font-size:14px}
-.slot .sbadge{font-size:11px;border-radius:99px;padding:2px 8px;border:1px solid}
-.slot .sbadge.ai{border-color:var(--mut);color:var(--mut)}
-.slot .sbadge.human{border-color:var(--teal);color:var(--teal)}
-.slot .sbadge.open{border-color:var(--amber);color:var(--amber)}
-.slot button.toggle{font-size:11px;padding:3px 10px}
-.startbtn{background:var(--amber);color:var(--ink);font-weight:700;border:none;padding:12px;font-size:16px;border-radius:10px;width:100%}
-.mut{color:var(--mut);font-size:13px;text-align:center}
-.top{display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 16px;margin-bottom:12px}
-.stat{font-size:13px;color:var(--mut)}.stat b{color:var(--cream)}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;margin-bottom:12px}
-.pp{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
-.pp.cur{border-color:var(--amber);box-shadow:0 0 0 1px var(--amber)}
-.pp.isme{border-color:var(--teal)}
+:root{
+  --bg:#141216; --panel:#1f1c22; --panel2:#262229; --line:#39333f;
+  --cream:#f4ead8; --ink:#2a2026;
+  --amber:#ffb020; --red:#e0492f; --teal:#3fb8a0; --mut:#9b93a4;
+}
+*{box-sizing:border-box; margin:0}
+body{background:var(--bg); color:var(--cream); font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; padding:14px}
+button{font:inherit; cursor:pointer; border:1px solid var(--line); background:var(--panel2); color:var(--cream); border-radius:8px; padding:6px 12px}
+button:hover:not(:disabled){border-color:var(--amber)}
+button:disabled{opacity:.35; cursor:default}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.title{font-family:ui-monospace,Menlo,monospace; letter-spacing:3px; font-weight:700; color:var(--amber)}
+.top{display:flex; align-items:center; gap:16px; flex-wrap:wrap; background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:10px 16px; margin-bottom:12px}
+.stat{font-size:13px; color:var(--mut)} .stat b{color:var(--cream); font-size:15px}
+.grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(215px,1fr)); gap:10px; margin-bottom:12px}
+.pp{background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:10px 12px; position:relative}
+.pp.cur{border-color:var(--amber); box-shadow:0 0 0 1px var(--amber)}
 .pp.dead{opacity:.4}
-.pp h3{font-size:15px;display:flex;justify-content:space-between;align-items:center}
-.hp{color:var(--red);letter-spacing:2px}
-.zone{min-height:28px;margin-top:6px;display:flex;flex-wrap:wrap;gap:4px}
-.rat{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:2px 6px;font-size:13px}
-.rat.ratt{border-color:var(--amber);background:#2a2010}
-.rat .att{color:var(--amber);font-size:11px;margin-left:3px}
-.tag{font-size:11px;border:1px solid var(--teal);color:var(--teal);border-radius:99px;padding:1px 7px;margin-left:4px}
-.tag.warn{border-color:var(--red);color:var(--red)}
-.meta{font-size:12px;color:var(--mut);margin-top:4px}
-.main{display:grid;grid-template-columns:1fr 300px;gap:12px}
-@media(max-width:860px){.main{grid-template-columns:1fr}}
-.handbox{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px}
-.hand{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
-.card{width:138px;border-radius:9px;padding:8px;display:flex;flex-direction:column;gap:4px;border:2px solid transparent;color:#fff}
-.card .nm{font-weight:700;font-size:13px}
-.card .ds{font-size:11px;line-height:1.3;flex:1;opacity:.88}
-.card .ct{font-size:10px;text-transform:uppercase;letter-spacing:1px;opacity:.65}
-.card button{width:100%;padding:4px;font-size:12px;background:rgba(0,0,0,.35);color:#fff;border:none;border-radius:5px;margin-top:2px}
+.pp h3{font-size:15px; display:flex; justify-content:space-between; align-items:center}
+.hp{color:var(--red); letter-spacing:2px}
+.zone{min-height:30px; margin-top:6px; display:flex; flex-wrap:wrap; gap:4px}
+.rat{background:var(--panel2); border:1px solid var(--line); border-radius:6px; padding:2px 6px; font-size:13px}
+.rat.rat-att{border-color:var(--amber); background:#2a2010}
+.rat .att{color:var(--amber); font-size:11px; margin-left:3px}
+.tag{font-size:11px; border:1px solid var(--teal); color:var(--teal); border-radius:99px; padding:1px 7px; margin-left:5px}
+.tag.warn{border-color:var(--red); color:var(--red)}
+.meta{font-size:12px; color:var(--mut); margin-top:5px}
+.main{display:grid; grid-template-columns:1fr 320px; gap:12px}
+@media(max-width:900px){.main{grid-template-columns:1fr}}
+.handbox{background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:12px}
+.hand{display:flex; flex-wrap:wrap; gap:8px; margin-top:8px}
+.card{width:138px; border-radius:9px; padding:8px; display:flex; flex-direction:column; gap:4px; border:2px solid transparent; color:#fff}
+.card .nm{font-weight:700; font-size:13px}
+.card .ds{font-size:11px; line-height:1.3; flex:1; opacity:.88}
+.card .ct{font-size:10px; text-transform:uppercase; letter-spacing:1px; opacity:.65}
+.card button{width:100%; padding:4px; font-size:12px; background:rgba(0,0,0,.35); color:#fff; border:none; border-radius:5px; margin-top:2px}
 .card button:hover:not(:disabled){background:rgba(0,0,0,.55)}
 .card button:disabled{opacity:.3}
-.cat-engine{background:linear-gradient(135deg,#b84a0a,#e06520);border-color:#f08040}
-.cat-attack{background:linear-gradient(135deg,#8b1a1a,#c0392b);border-color:#e74c3c}
-.cat-defence{background:linear-gradient(135deg,#1a3a5c,#2471a3);border-color:#3498db}
-.cat-control{background:linear-gradient(135deg,#3b1a6b,#7d3c98);border-color:#9b59b6}
-.cat-info{background:linear-gradient(135deg,#0e5c5c,#1a8a7a);border-color:#1abc9c}
-.cat-buff{background:linear-gradient(135deg,#3a5a1a,#6b8e23);border-color:#8fbc3a}
-.cat-gamble{background:linear-gradient(135deg,#7a5500,#c49a00);border-color:#f1c40f}
-.cat-resource{background:linear-gradient(135deg,#1a4a1a,#2d7a2d);border-color:#4caf50}
-.cat-wd{background:linear-gradient(135deg,#4a0a4a,#8b1a8b);border-color:#cc44cc}
-.logbox{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;max-height:440px;display:flex;flex-direction:column}
-.log{overflow-y:auto;font-size:13px;display:flex;flex-direction:column-reverse;gap:3px}
-.log .me{color:var(--amber)}.log .dmg{color:#e06080}.log .sys{color:var(--mut);font-style:italic}
-.overlay{position:fixed;inset:0;background:rgba(10,8,12,.78);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px}
-.modal{background:var(--panel);border:1px solid var(--amber);border-radius:14px;padding:18px;max-width:540px;width:100%;max-height:80vh;overflow-y:auto}
-.modal h4{margin-bottom:12px;color:var(--amber)}
-.opts{display:flex;flex-direction:column;gap:7px}
-.opts button{text-align:left;padding:9px 12px}
-.opts button .sub{display:block;font-size:12px;color:var(--mut)}
-.endbtn{background:var(--amber);color:var(--ink);font-weight:700;border:none}
-.notif{background:#1a3a1a;border:1px solid var(--teal);border-radius:10px;padding:10px 14px;margin-bottom:10px;font-size:13px}
-
-.tutorial{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 18px;margin-top:14px;font-size:13px}
-.tutorial h3{color:var(--amber);margin-bottom:10px;font-size:14px;letter-spacing:1px}
-.tutorial h4{color:var(--cream);margin:10px 0 4px;font-size:13px}
-.tutorial p,.tutorial li{color:var(--mut);line-height:1.5;margin-bottom:4px}
-.tutorial ul{padding-left:18px}
+/* engine — warm orange */
+.cat-engine{background:linear-gradient(135deg,#b84a0a,#e06520); border-color:#f08040}
+/* attack — sharp red */
+.cat-attack{background:linear-gradient(135deg,#8b1a1a,#c0392b); border-color:#e74c3c}
+/* defence — steel blue */
+.cat-defence{background:linear-gradient(135deg,#1a3a5c,#2471a3); border-color:#3498db}
+/* control — deep purple */
+.cat-control{background:linear-gradient(135deg,#3b1a6b,#7d3c98); border-color:#9b59b6}
+/* info — teal */
+.cat-info{background:linear-gradient(135deg,#0e5c5c,#1a8a7a); border-color:#1abc9c}
+/* buff/nerf — olive green */
+.cat-buff{background:linear-gradient(135deg,#3a5a1a,#6b8e23); border-color:#8fbc3a}
+/* gamble — gold */
+.cat-gamble{background:linear-gradient(135deg,#7a5500,#c49a00); border-color:#f1c40f}
+/* resource — dark green */
+.cat-resource{background:linear-gradient(135deg,#1a4a1a,#2d7a2d); border-color:#4caf50}
+/* when-drawn — dark magenta */
+.cat-wd{background:linear-gradient(135deg,#4a0a4a,#8b1a8b); border-color:#cc44cc}
+.logbox{background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:12px; max-height:480px; display:flex; flex-direction:column}
+.log{overflow-y:auto; font-size:13px; display:flex; flex-direction:column-reverse; gap:3px}
+.log .me{color:var(--amber)} .log .dmg{color:#e06080} .log .sys{color:var(--mut); font-style:italic} .log .entry{padding:1px 0; border-bottom:1px solid #1e1a22}
+.overlay{position:fixed; inset:0; background:rgba(10,8,12,.75); display:flex; align-items:center; justify-content:center; z-index:50; padding:16px}
+.modal{background:var(--panel); border:1px solid var(--amber); border-radius:14px; padding:18px; max-width:560px; width:100%; max-height:85vh; overflow-y:auto}
+.modal h4{margin-bottom:12px; color:var(--amber)}
+.opts{display:flex; flex-direction:column; gap:7px}
+.opts button{text-align:left; padding:9px 12px}
+.opts button .sub{display:block; font-size:12px; color:var(--mut)}
+.setup{max-width:560px; margin:60px auto; text-align:center}
+.setup .pc{display:flex; gap:10px; justify-content:center; margin-top:20px}
+.setup .pc button{font-size:20px; padding:14px 22px}
+.ref{font-size:12px; color:var(--mut); max-height:300px; overflow-y:auto; margin-top:8px}
+.ref b{color:var(--cream)}
+.endbtn{background:var(--amber); color:var(--ink); font-weight:700; border:none}
 </style>
 </head>
 <body>
 <div id="root"></div>
 <script type="text/babel" data-presets="env,react">
-const {useState, useEffect, useRef} = React;
-const socket = io();
+const {useState, useRef} = React;
 
-const DEFS = {
-  "Rat":{cat:"engine",ds:"When drawn: zoned immediately."},
-  "Health Inspection":{cat:"attack",ds:"Fire a rat from targets zone. They lose 1 HP. Each zone once per turn. Blockable."},
-  "Hot Ratato 1":{cat:"attack",ds:"Send 1 rat 1 seat clockwise. Blockable.",boost:"Send 2 rats (needs 2+ rats in zone)."},
-  "Hot Ratato 2":{cat:"attack",ds:"Send 1 rat 2 seats clockwise. Blockable.",boost:"Send 2 rats (needs 2+ rats in zone)."},
-  "Hot Ratato 3":{cat:"attack",ds:"Send 1 rat 3 seats clockwise. Blockable.",boost:"Send 2 rats (needs 2+ rats in zone)."},
-  "Hot Ratato CCW 1":{cat:"attack",ds:"Send 1 rat 1 seat anticlockwise. Blockable.",boost:"Send 2 rats (needs 2+ rats in zone)."},
-  "Hot Ratato CCW 2":{cat:"attack",ds:"Send 1 rat 2 seats anticlockwise. Blockable.",boost:"Send 2 rats (needs 2+ rats in zone)."},
-  "Held Rat":{cat:"engine",ds:"Place a rat from the pile into any players zone."},
-  "Infestation":{cat:"engine",ds:"Take 1 rat from pile, place on top of deck.",boost:"Take from own zone instead."},
-  "Plague":{cat:"engine",ds:"Take up to 3 rats from pile, place on top of deck."},
-  "Block":{cat:"defence",ds:"Reactive. Cancel a Health Inspection or Hot Ratato aimed at you.",boost:"Redirect to another valid target."},
-  "Fortify":{cat:"defence",ds:"Zone immune to attacks and Chilli until your next turn."},
-  "Exterminator":{cat:"defence",ds:"Remove 1 rat from your zone to the pile.",boost:"Remove 2."},
-  "Ambush":{cat:"defence",ds:"Reactive. Cancel a Hot Ratato aimed at you and steal it."},
-  "Redirect CW":{cat:"defence",ds:"Reactive. Redirect a Hot Ratato clockwise."},
-  "Redirect CCW":{cat:"defence",ds:"Reactive. Redirect a Hot Ratato anticlockwise."},
-  "Mark":{cat:"control",ds:"Next Health Inspection by anyone hits the marked player."},
-  "Mark 2.0":{cat:"control",ds:"Next rat drawn from deck goes to named players zone."},
-  "Setup":{cat:"control",ds:"Look at top 2 cards, keep 1. Other goes back on top.",boost:"Keep 2."},
-  "Shakedown":{cat:"control",ds:"Name a card - target hands over 1 copy if held.",boost:"See their hand first."},
-  "Inheritance":{cat:"control",ds:"If target eliminated before your next turn, keep 2 of their cards.",boost:"Keep 4."},
-  "Laundering":{cat:"control",ds:"Discard up to 3 cards. Draw the same number."},
-  "Zone Swap":{cat:"control",ds:"Swap your entire rat zone with any other players zone. 5-rat death checks apply immediately."},
-  "Surge":{cat:"control",ds:"Draw 2 yourself OR force any player to draw 1."},
-  "Russian Roulette":{cat:"gamble",ds:"Uses 1 rat from the pile. Shuffled with 1 card from each other player. Everyone draws 1 blind.",boost:"Use a rat from your own zone instead."},
-  "Stakeout":{cat:"control",ds:"Name a card - target hands over 1 copy if held. (Same as Shakedown)",boost:"Take ALL copies of that card from targets hand."},
-  "Scout":{cat:"info",ds:"Look at top 5 cards, keep 1. Others go back on top.",boost:"Keep 2."},
-  "Chilli":{cat:"buff",ds:"Attach to opponents rat. Detonates by end of your next turn: 1 HP. Blockable."},
-  "Rattatouli":{cat:"buff",ds:"A rat in your zone becomes a Food card in your hand."},
-  "Rat Dividend":{cat:"buff",ds:"Draw 1 card per rat in your zone."},
-  "Pregnant Rat":{cat:"buff",ds:"Attach to opponents rat. Next turn it becomes 2 rats."},
-  "Rat Away":{cat:"defence",ds:"At the start of your next turn, ALL rats in your zone return to the pile."},
-  "Rat Territorial":{cat:"buff",ds:"Attach to a rat in your zone. No rats may enter your zone while this rat remains."},
-  "Cat":{cat:"defence",ds:"Attach to any rat. Blocks the next Health Inspection targeting that rat, then is discarded.",boost:"Blocks 2 inspections instead of 1."},
-  "Kleptomaniac":{cat:"attack",ds:"Needs 1+ rat in your zone. Send a rat to steal 1 random card from a player. Blockable.",boost:"Steal from 1 player per rat in your zone."},
-  "Food":{cat:"resource",ds:"Spend 1: activate any boost. Spend 2: bribe a rat from your zone into the deck (shuffled in). Spend 3: force all others to discard 1, you keep up to 3."},
-  "WD: Frenzy":{cat:"wd",ds:"When drawn: all players draw 1 card."},
-  "WD: Blackout":{cat:"wd",ds:"When drawn: discard your hand and redraw same number."},
-  "WD: Rat Run CW":{cat:"wd",ds:"When drawn: every players first rat moves clockwise."},
-  "WD: Rat Run CCW":{cat:"wd",ds:"When drawn: every players first rat moves anticlockwise."},
-  "WD: Audit":{cat:"wd",ds:"When drawn: player(s) with most cards discard 1."},
-  "WD: Curfew":{cat:"wd",ds:"When drawn: player with most rats moves 1 rat anywhere."},
-  "WD: Health Inspection":{cat:"wd",ds:"When drawn: if you have 1+ rats, 1 rat fires and you lose 1 HP."},
+/* ============ CARD DATA (handover v5) ============ */
+const Q = (a)=>a; // [4P,5P,6P,7P,8P]
+const DECK_TABLE = {
+ "Rat":Q([8,10,12,14,16]), "Health Inspection":Q([9,12,15,18,21]),
+ "Hot Ratato":Q([10,12,14,16,18]), "Block":Q([4,5,6,7,8]),
+ "Food":Q([6,8,9,10,12]), "Held Rat":Q([2,2,2,2,2]),
+ "Infestation":Q([2,2,2,2,2]), "Plague":Q([1,1,1,1,1]),
+ "Setup":Q([2,2,2,2,2]), "Fortify":Q([2,2,3,4,4]),
+ "Exterminator":Q([2,2,2,2,2]), "Mark":Q([2,2,2,2,2]),
+ "Mark 2.0":Q([1,1,1,1,1]), "Ambush":Q([1,1,2,2,2]),
+ "Stakeout":Q([2,2,3,4,4]), "Shakedown":Q([2,2,3,4,4]),
+ "Bounty":Q([2,2,3,4,4]), 
+ "Laundering":Q([1,1,1,1,1]), "Russian Roulette":Q([1,1,1,1,1]),
+ "Chilli":Q([2,2,3,4,4]), "Rattatouli":Q([2,2,3,4,4]),
+ "Rat Dividend":Q([1,1,1,2,2]), "Pregnant Rat":Q([1,1,1,1,1]),
+ "Redirect CW":Q([1,1,1,1,1]), "Redirect CCW":Q([1,1,1,1,1]),
+ "Kitchen Fusion":Q([1,1,1,2,2]), "Scout":Q([1,1,2,2,2]),
+ "Rat Away":Q([2,2,2,2,2]), "Surge":Q([1,1,2,2,2]),
+ "WD: Frenzy":Q([2,2,2,2,2]), "WD: Blackout":Q([1,1,1,1,1]),
+ "WD: Rat Run CW":Q([1,1,1,1,1]), "WD: Rat Run CCW":Q([1,1,1,1,1]),
+ "WD: Audit":Q([1,1,1,1,1]), "WD: Curfew":Q([1,1,1,1,1]),
 };
+const DEFS = {
+ "Rat":{cat:"engine", ds:"When drawn: zoned immediately."},
+ "Health Inspection":{cat:"attack", ds:"Target a player with 1+ rat. You choose the rat fired. They lose 1 HP, rat to pile. Blockable. Each zone targetable once per turn."},
+ "Hot Ratato":{cat:"attack", ds:"Send 1 rat clockwise: 1, 2, or 3 seats (you choose the distance). Blockable.", boost:"Send 2 rats."},
+ "Held Rat":{cat:"engine", ds:"Place a rat from the pile into any player's zone. No Health Inspection this turn."},
+ "Infestation":{cat:"engine", ds:"Take 1 rat from pile, place on top of deck.", boost:"Take from own zone instead."},
+ "Plague":{cat:"engine", ds:"Take up to 3 rats from pile, place on top of deck."},
+ "Block":{cat:"defence", ds:"Reactive. Cancel a Health Inspection or Hot Ratato aimed at you.", boost:"Redirect it to another valid target."},
+ "Fortify":{cat:"defence", ds:"Zone immune to Health Inspection, Hot Ratato and Chilli until your next turn."},
+ "Exterminator":{cat:"defence", ds:"Remove 1 rat from your zone to the pile.", boost:"Remove 2."},
+ "Ambush":{cat:"defence", ds:"Reactive. Cancel any non-Health-Inspection card aimed at you. Steal it into your hand."},
+ "Redirect CW":{cat:"defence", ds:"Reactive. Cancel a Hot Ratato aimed at you — rat passes clockwise. If next player is fortified, rat stays with you."},
+ "Redirect CCW":{cat:"defence", ds:"Reactive. As Redirect CW but anticlockwise."},
+ "Mark":{cat:"control", ds:"Name a player. Until your next turn, the next Health Inspection by anyone hits them."},
+ "Mark 2.0":{cat:"control", ds:"Name a player. Until your next turn, the next rat drawn from the deck goes to their zone."},
+ "Setup":{cat:"control", ds:"Draw 2, discard 1.", boost:"Draw 3, discard 1."},
+ "Shakedown":{cat:"control", ds:"Name a card blind. Target hands over 1 copy if held. Wrong: card spent.", boost:"Look at their hand first."},
+ "Bounty":{cat:"control", ds:"Name a player. If eliminated before your next turn, you keep 2 of their cards.", boost:"Keep 4."},
+ "Laundering":{cat:"control", ds:"Discard up to 3 cards. Draw the same number."},
+ "Kitchen Fusion":{cat:"control", ds:"Choose a player. They cannot target you with Health Inspection or Hot Ratato until your next turn."},
+ "Surge":{cat:"control", ds:"Choose: draw 2 yourself OR force any player to draw 1 now."},
+ "Russian Roulette":{cat:"gamble", ds:"Needs 1+ rat in your zone. 1 of your rats + 1 card from every other player, shuffled. Everyone draws 1 blind — someone gets the rat."},
+ "Stakeout":{cat:"info", ds:"Look at one player's full hand.", boost:"Also ask the count of one named card."},
+ "Scout":{cat:"info", ds:"Look at top 3 cards of deck. Keep 1, return 2."},
+ "Chilli":{cat:"buff", ds:"Attach to a rat in an opponent's zone. By end of your next turn it auto-detonates: 1 HP, rat to pile. Blockable; Fortify discards it."},
+ "Rattatouli":{cat:"buff", ds:"A rat in your own zone instantly becomes a Food card in your hand."},
+ "Rat Dividend":{cat:"buff", ds:"Draw 1 card per rat in your zone. Rats drawn go back on top of the deck. WD cards resolve."},
+ "Pregnant Rat":{cat:"buff", ds:"Attach to a rat in an opponent's zone. At the start of their next turn it becomes 2 rats."},
+ "Rat Away":{cat:"buff", ds:"Attach to a rat in your own zone. At the start of your next turn it returns to the pile."},
+ "Food":{cat:"resource", ds:"Spend 1 Food to activate any card's boost."},
+ "WD: Frenzy":{cat:"wd", ds:"When drawn: all players draw 1 card."},
+ "WD: Blackout":{cat:"wd", ds:"When drawn: discard your entire hand and redraw the same number."},
+ "WD: Rat Run CW":{cat:"wd", ds:"When drawn: every player's first-placed rat moves clockwise."},
+ "WD: Rat Run CCW":{cat:"wd", ds:"When drawn: every player's first-placed rat moves anticlockwise."},
+ "WD: Audit":{cat:"wd", ds:"When drawn: player(s) with most cards discard 1."},
+ "WD: Curfew":{cat:"wd", ds:"When drawn: player with most rats may move 1 rat to any zone. Tied: discarded."},
+};
+const AI_NAMES = ["Gyro Boys","BBQ Crew","Taco Cartel","Pho Syndicate","Smugglers","Enforcers","Launderette","Fixers"];
 
-function PeekModal({pm, peekSel, setPeekSel, act, DEFS}) {
-  const {top, keep, kind} = pm;
-  const toggle = id => {
-    if(peekSel.includes(id)) setPeekSel(peekSel.filter(x=>x!==id));
-    else if(peekSel.length < keep) setPeekSel([...peekSel, id]);
-  };
-  const done = peekSel.length >= keep;
-  const submit = () => act({type: kind==='SETUP'?'SETUP_KEEP':'SCOUT_KEEP', cardIds: peekSel});
-  return (
-    <div className="overlay"><div className="modal">
-      <h4>{kind}: choose {keep} card(s) to keep</h4>
-      <div className="opts">
-        {(top||[]).map((c,i)=>(
-          <button key={c.id} onClick={()=>toggle(c.id)}
-            style={{borderColor:peekSel.includes(c.id)?'var(--amber)':'var(--line)',background:peekSel.includes(c.id)?'#2a2010':'var(--panel2)'}}>
-            {c.n}<span className="sub">{DEFS[c.n]&&DEFS[c.n].ds}</span>
-          </button>
-        ))}
-      </div>
-      <button className="endbtn" style={{marginTop:10,width:'100%'}} disabled={!done} onClick={submit}>
-        Keep {peekSel.length}/{keep}
-      </button>
-    </div></div>
-  );
+/* ============ ENGINE ============ */
+let G = null;            // game state (mutable singleton)
+let REF = {refresh:()=>{}, modal:null};
+
+const sh = a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const isWD = n=>n.startsWith("WD:");
+let CID=0, RID=0;
+const mk = n=>({id:++CID, n});
+const L = (msg, cls="")=>{G.log.unshift({msg, cls, t:G.log.length}); if(G.log.length>250)G.log.pop()};
+
+function buildDeck(np){
+  const i = np-4, deck=[];
+  for(const [n,q] of Object.entries(DECK_TABLE)) for(let k=0;k<q[i];k++) deck.push(mk(n));
+  return deck;
+}
+function newGame(np){
+  CID=0; RID=0;
+  const full = buildDeck(np);
+  const dealPool = full.filter(c=>c.n!=="Rat" && !isWD(c.n));
+  const excluded = full.filter(c=>c.n==="Rat" || isWD(c.n));
+  sh(dealPool);
+  const players=[];
+  const names = sh(AI_NAMES.slice());
+  for(let p=0;p<np;p++) players.push({
+    i:p, name:p===0?"You":names[p-1], human:p===0, hp:3, alive:true,
+    hand:[], zone:[], fortify:false
+  });
+  for(const pl of players) for(let k=0;k<6;k++) pl.hand.push(dealPool.pop());
+  const deck = sh(dealPool.concat(excluded));
+  G = {np, players, deck, discard:[], pile:10, cur:0, round:1,
+       attackUsed:false, heldRatUsed:false, touchedZones:new Set(),
+       mark:null, mark2:null, bounties:[], debts:[], fusions:[],
+       log:[], over:false, winner:null, busy:false};
+  L(`New game — ${np} players. Deck ${deck.length}, pile 10.`, "sys");
+  L(`Your opening hand is dealt. Your turn first.`, "me");
 }
 
-function App() {
-  const [phase, setPhase]       = useState('lobby');
-  const [name, setName]         = useState('');
-  const [roomCode, setRoomCode] = useState('');
-  const [joinCode, setJoinCode] = useState('');
-  const [np, setNp]             = useState(4);
-  const [pi, setPi]             = useState(null);
-  const [G, setG]               = useState(null);
-  const [slots, setSlots]       = useState([]);
-  const [isCreator, setIsCreator] = useState(false);
-  const [modal, setModal]       = useState(null);
-  const [notif, setNotif]       = useState(null);
-  const [stakeout, setStakeout] = useState(null);
-  const [scoutCards, setScout]  = useState(null);
-  const [peekSel, setPeekSel]   = useState([]);
-  const [error, setError]       = useState(null);
-  const piRef = useRef(null);
+const alive = ()=>G.players.filter(p=>p.alive);
+const opps = p=>G.players.filter(o=>o.alive && o.i!==p);
+const nextAlive = (from, dir)=>{ let i=from; for(let k=0;k<G.np;k++){ i=(i+dir+G.np)%G.np; if(G.players[i].alive) return i;} return from; };
+const fusionBlocked = (atk,tgt)=>G.fusions.some(f=>f.placer===tgt && f.target===atk);
+const canHitHI = (atk,t)=>t.alive && t.i!==atk && t.zone.length>0 && !t.fortify && !fusionBlocked(atk,t.i);
+const canHitHR = (atk,t)=>t.alive && t.i!==atk && !t.fortify && !fusionBlocked(atk,t.i);
+const zoneAvail = (tgt)=>!G.touchedZones.has(tgt);
 
-  // ALL hooks before any conditional returns
-  useEffect(() => {
-    // Auto-rejoin if session has saved room
-    try {
-      const saved = sessionStorage.getItem('tw_session');
-      if(saved) {
-        const {code, name: n} = JSON.parse(saved);
-        if(code && n) { setName(n); setJoinCode(code); socket.emit('join_room',{code,name:n}); }
+function zoneRat(pIdx, att=null){
+  if(G.pile>0) G.pile--;
+  G.players[pIdx].zone.push({id:++RID, att});
+}
+function ratToPile(pIdx, zi){
+  const r = G.players[pIdx].zone.splice(zi,1)[0];
+  if(r && r.att){ G.discard.push(r.att.card); }
+  G.pile++;
+  return r;
+}
+function toDiscard(card){ G.discard.push(card); }
+function removeHand(pl, cardId){
+  const i = pl.hand.findIndex(c=>c.id===cardId);
+  return i>=0 ? pl.hand.splice(i,1)[0] : null;
+}
+function spendFood(pl){
+  const i = pl.hand.findIndex(c=>c.n==="Food");
+  if(i<0) return false;
+  toDiscard(pl.hand.splice(i,1)[0]);
+  L(`${pl.name} spends a Food to boost.`);
+  return true;
+}
+function reshuffle(){
+  if(G.deck.length>0) return;
+  if(G.discard.length===0){ L("Deck and discard empty — no reshuffle possible.","sys"); return; }
+  G.deck = sh(G.discard); G.discard=[]; G.pile=5;
+  L("RESHUFFLE — discard shuffled into a new deck. Pile reset to 5.","sys");
+}
+
+/* draw with rat/WD handling; done(card|null). Human inputs may pause flow. */
+function drawCard(pIdx, done){
+  reshuffle();
+  if(G.deck.length===0){ done(null); return; }
+  const pl = G.players[pIdx];
+  const c = G.deck.pop();
+  if(c.n==="Rat"){
+    toDiscard(c);
+    if(G.mark2){
+      const m=G.mark2; G.mark2=null;
+      zoneRat(m.target);
+      L(`${pl.name} draws a RAT — Mark 2.0 sends it to ${G.players[m.target].name}'s zone!`,"dmg");
+    } else {
+      zoneRat(pIdx);
+      L(`${pl.name} draws a RAT — it scurries into their zone.`,"dmg");
+    }
+    done(c);
+    return;
+  }
+  if(isWD(c.n)){
+    toDiscard(c);
+    L(`${pl.name} draws ${c.n} — it resolves immediately.`,"sys");
+    resolveWD(c.n, pIdx, ()=>done(c));
+    return;
+  }
+  pl.hand.push(c);
+  if(pl.human) L(`You draw: ${c.n}.`,"me"); else L(`${pl.name} draws a card.`);
+  done(c);
+}
+/* raw draw used inside Frenzy (WDs deferred) */
+function rawDraw(pIdx, wdQueue){
+  reshuffle();
+  if(G.deck.length===0) return;
+  const c=G.deck.pop(), pl=G.players[pIdx];
+  if(c.n==="Rat"){ toDiscard(c);
+    if(G.mark2){const m=G.mark2;G.mark2=null;zoneRat(m.target);L(`Rat redirected to ${G.players[m.target].name} (Mark 2.0).`,"dmg");}
+    else {zoneRat(pIdx); L(`${pl.name} draws a RAT.`,"dmg");}
+    return; }
+  if(isWD(c.n)){ toDiscard(c); wdQueue.push({n:c.n,p:pIdx}); L(`${pl.name} draws ${c.n} (resolves after Frenzy).`,"sys"); return; }
+  pl.hand.push(c); L(`${pl.name} draws a card.`);
+}
+
+function damage(pIdx, src, done){
+  const pl=G.players[pIdx];
+  pl.hp--;
+  L(`${pl.name} loses 1 HP (${src}). ${pl.hp} HP left.`,"dmg");
+  if(pl.hp<=0){ eliminate(pIdx, done); } else done();
+}
+function eliminate(pIdx, done){
+  const pl=G.players[pIdx];
+  pl.alive=false;
+  L(`☠ ${pl.name} is ELIMINATED.`,"dmg");
+  while(pl.zone.length) ratToPile(pIdx,0);
+  G.debts = G.debts.filter(d=>d.debtor!==pIdx && d.creditor!==pIdx);
+  G.fusions = G.fusions.filter(f=>f.placer!==pIdx && f.target!==pIdx);
+  if(G.mark && (G.mark.placer===pIdx||G.mark.target===pIdx)) G.mark=null;
+  if(G.mark2 && (G.mark2.placer===pIdx||G.mark2.target===pIdx)) G.mark2=null;
+  const b = G.bounties.find(b=>b.target===pIdx && G.players[b.placer].alive);
+  const finish = ()=>{
+    while(pl.hand.length) toDiscard(pl.hand.pop());
+    const liv=alive();
+    if(liv.length===1){ G.over=true; G.winner=liv[0].i; L(`🏆 ${liv[0].name} wins Turf Wars!`,"me"); }
+    done();
+  };
+  if(b && pl.hand.length>0){
+    const hunter=G.players[b.placer], take=Math.min(b.keep, pl.hand.length);
+    G.bounties=G.bounties.filter(x=>x!==b);
+    if(hunter.human){
+      pickCardsFromList(`Bounty claimed — keep ${take} of ${pl.name}'s cards`, pl.hand.slice(), take, picked=>{
+        picked.forEach(c=>{removeHand(pl,c.id); hunter.hand.push(c);});
+        L(`You claim the bounty on ${pl.name} — kept ${take} card(s).`,"me");
+        finish();
+      });
+    } else {
+      sh(pl.hand);
+      for(let k=0;k<take;k++) hunter.hand.push(pl.hand.pop());
+      L(`${hunter.name} claims the bounty on ${pl.name} — keeps ${take} card(s).`);
+      finish();
+    }
+  } else finish();
+}
+
+/* ============ ATTACK PIPELINE (reactions) ============ */
+/* atk = {kind:'HI'|'HR', from, to, ratZi (HR: attacker's rat index / HI: chosen target rat), boost, redirected} */
+function declareAttack(atk, done){
+  const A=G.players[atk.from];
+  if(atk.kind==="HI" && G.mark){
+    const m=G.mark; G.mark=null;
+    if(G.players[m.target].alive && m.target!==atk.from && G.players[m.target].zone.length>0){
+      L(`Mark triggers — the Health Inspection is redirected to ${G.players[m.target].name}!`,"sys");
+      atk.to=m.target; atk.ratZi=0;
+    }
+  }
+  const T=G.players[atk.to];
+  L(`${A.name} fires ${atk.kind==="HI"?"a Health Inspection":"a Hot Ratato"} at ${T.name}.`, A.human?"me":"");
+  reactionWindow(atk, done);
+}
+function reactionWindow(atk, done){
+  const T=G.players[atk.to];
+  if(!T.alive){ done(); return; }
+  const hasBlock = T.hand.some(c=>c.n==="Block");
+  const hasCW = atk.kind==="HR" && !atk.redirected && T.hand.some(c=>c.n==="Redirect CW");
+  const hasCCW = atk.kind==="HR" && !atk.redirected && T.hand.some(c=>c.n==="Redirect CCW");
+  const hasAmbush = atk.kind==="HR" && T.hand.some(c=>c.n==="Ambush");
+  if(!hasBlock && !hasCW && !hasCCW && !hasAmbush){ resolveAttack(atk, done); return; }
+  if(T.human){
+    const opts=[{label:"Take the hit", value:"none"}];
+    if(hasBlock){
+      opts.push({label:"Block", value:"block", sub:"Cancel the attack"});
+      if(T.hand.some(c=>c.n==="Food"))
+        opts.push({label:"Block + boost (1 Food)", value:"blockboost", sub:"Redirect the attack to another player"});
+    }
+    if(hasCW) opts.push({label:"Redirect CW", value:"cw", sub:"Rat passes clockwise"});
+    if(hasCCW) opts.push({label:"Redirect CCW", value:"ccw", sub:"Rat passes anticlockwise"});
+    if(hasAmbush) opts.push({label:"Ambush", value:"ambush", sub:"Cancel and steal the card"});
+    ask(`${G.players[atk.from].name} attacks you (${atk.kind==="HI"?"Health Inspection":"Hot Ratato"}). React?`, opts, v=>applyReaction(atk, v, done));
+  } else {
+    let v="none";
+    if(hasBlock){
+      const p = atk.kind==="HI" ? (T.hp===1?0.95:0.65) : 0.35;
+      if(Math.random()<p) v="block";
+    }
+    if(v==="none" && (hasCW||hasCCW) && Math.random()<0.5) v = hasCW?"cw":"ccw";
+    if(v==="none" && hasAmbush && Math.random()<0.3) v="ambush";
+    applyReaction(atk, v, done);
+  }
+}
+function useReactive(T, name){
+  const i=T.hand.findIndex(c=>c.n===name);
+  toDiscard(T.hand.splice(i,1)[0]);
+}
+function applyReaction(atk, v, done){
+  const T=G.players[atk.to];
+  if(v==="none"){ resolveAttack(atk, done); return; }
+  if(v==="block"){ useReactive(T,"Block"); L(`${T.name} BLOCKS the attack.`, T.human?"me":""); done(); return; }
+  if(v==="blockboost"){
+    useReactive(T,"Block"); spendFood(T);
+    const valid = G.players.filter(o=>o.alive && o.i!==atk.to && o.i!==atk.from &&
+      (atk.kind==="HI" ? canHitHI(atk.from,o) : canHitHR(atk.from,o)));
+    if(valid.length===0){ L(`${T.name} blocks — no valid redirect target, attack fizzles.`); done(); return; }
+    const doRedir = t=>{
+      L(`${T.name} blocks and REDIRECTS the attack to ${G.players[t].name}!`, T.human?"me":"");
+      atk.to=t; if(atk.kind==="HI") atk.ratZi=0;
+      atk.redirected=true;
+      reactionWindow(atk, done);
+    };
+    if(T.human) ask("Redirect the attack to:", valid.map(o=>({label:o.name, value:o.i, sub:`${o.zone.length} rats · ${o.hp} HP`})), doRedir);
+    else doRedir(valid[0].i);
+    return;
+  }
+  if(v==="cw"||v==="ccw"){
+    useReactive(T, v==="cw"?"Redirect CW":"Redirect CCW");
+    const dir = v==="cw"?1:-1;
+    const nxt = nextAlive(atk.to, dir);
+    const rat = G.players[atk.from].zone.splice(atk.ratZi,1)[0];
+    if(G.players[nxt].fortify || nxt===atk.from){
+      T.zone.push(rat);
+      L(`${T.name} redirects — next player is fortified, the rat stays in ${T.name}'s zone.`);
+    } else {
+      G.players[nxt].zone.push(rat);
+      L(`${T.name} redirects the Hot Ratato ${v==="cw"?"clockwise":"anticlockwise"} — rat lands on ${G.players[nxt].name}.`);
+    }
+    done(); return;
+  }
+  if(v==="ambush"){
+    useReactive(T,"Ambush");
+    const A=G.players[atk.from];
+    T.hand.push(mk("Hot Ratato"));
+    L(`${T.name} AMBUSHES — the Hot Ratato is cancelled and stolen into their hand.`, T.human?"me":"");
+    done(); return;
+  }
+}
+function resolveAttack(atk, done){
+  const A=G.players[atk.from], T=G.players[atk.to];
+  if(atk.kind==="HI"){
+    if(T.zone.length===0){ L("No rat left to fire — the inspection fizzles.","sys"); done(); return; }
+    const zi=Math.min(atk.ratZi||0, T.zone.length-1);
+    ratToPile(atk.to, zi);
+    L(`Inspection hits — a rat is fired from ${T.name}'s zone to the pile.`);
+    if(G.touchedZones) G.touchedZones.add(atk.to);
+    damage(atk.to, "Health Inspection", done);
+  } else {
+    const count = atk.boost?2:1;
+    let moved=0;
+    for(let k=0;k<count;k++){
+      if(A.zone.length===0) break;
+      const zi=Math.min(atk.ratZi||0, A.zone.length-1);
+      const rat=A.zone.splice(zi,1)[0];
+      T.zone.push(rat); moved++;
+    }
+    if(G.touchedZones) G.touchedZones.add(atk.to);
+    L(`${moved} rat(s) hop from ${A.name}'s zone into ${T.name}'s zone.`);
+    done();
+  }
+}
+
+/* ============ MODAL HELPERS ============ */
+function ask(prompt, items, cb){
+  REF.modal = {prompt, items, cb};
+  REF.refresh();
+}
+function answer(v){
+  const m=REF.modal; REF.modal=null;
+  m.cb(v); REF.refresh();
+}
+function pickCardsFromList(prompt, cards, count, cb, allowPartial=false){
+  const picked=[];
+  const step=()=>{
+    if(picked.length>=count || cards.length===0){ cb(picked); return; }
+    const opts = cards.map(c=>({label:c.n, value:c.id, sub:DEFS[c.n].ds}));
+    if(allowPartial && picked.length>0) opts.push({label:"Done (keep "+picked.length+")", value:"__done__"});
+    ask(`${prompt} (${picked.length+1}/${count})`, opts, id=>{
+      if(id==="__done__"){ cb(picked); return; }
+      const i=cards.findIndex(c=>c.id===id);
+      picked.push(cards.splice(i,1)[0]);
+      step();
+    });
+  };
+  step();
+}
+const ratLabel = (r,i)=>`Rat ${i+1}${r.att?` (${r.att.card.n})`:""}`;
+
+/* ============ WHEN-DRAWN RESOLUTION ============ */
+function resolveWD(name, pIdx, done){
+  const pl=G.players[pIdx];
+  if(name==="WD: Frenzy"){
+    const wdQ=[];
+    for(const o of alive()) rawDraw(o.i, wdQ);
+    const runQ=()=>{ if(wdQ.length===0){done();return;}
+      const w=wdQ.shift(); resolveWD(w.n, w.p, runQ); };
+    runQ(); return;
+  }
+  if(name==="WD: Blackout"){
+    const n=pl.hand.length;
+    while(pl.hand.length) toDiscard(pl.hand.pop());
+    L(`${pl.name} blacks out — discards ${n} cards and redraws.`,"sys");
+    let k=0; const loop=()=>{ if(k>=n){done();return;} k++; drawCard(pIdx, loop); };
+    loop(); return;
+  }
+  if(name==="WD: Rat Run CW"||name==="WD: Rat Run CCW"){
+    const dir = name.endsWith("CW")&&!name.endsWith("CCW") ? 1 : -1;
+    const movers = alive().filter(o=>o.zone.length>0).map(o=>({from:o.i, rat:o.zone[0]}));
+    for(const m of movers){
+      const o=G.players[m.from];
+      o.zone.splice(o.zone.indexOf(m.rat),1);
+      G.players[nextAlive(m.from,dir)].zone.push(m.rat);
+    }
+    L(`Rat Run — every first-placed rat scurries ${dir===1?"clockwise":"anticlockwise"}.`,"sys");
+    done(); return;
+  }
+  if(name==="WD: Audit"){
+    const max=Math.max(...alive().map(o=>o.hand.length));
+    if(max===0){done();return;}
+    const hit=alive().filter(o=>o.hand.length===max);
+    const loop=(i)=>{
+      if(i>=hit.length){done();return;}
+      const o=hit[i];
+      if(o.human && o.hand.length>0){
+        ask("Audit — discard 1 card:", o.hand.map(c=>({label:c.n, value:c.id, sub:DEFS[c.n].ds})), id=>{
+          toDiscard(removeHand(o,id)); L("You discard 1 to the Audit.","me"); loop(i+1);
+        });
+      } else if(o.hand.length>0){
+        sh(o.hand); toDiscard(o.hand.pop());
+        L(`${o.name} discards 1 to the Audit.`); loop(i+1);
+      } else loop(i+1);
+    };
+    loop(0); return;
+  }
+  if(name==="WD: Curfew"){
+    const max=Math.max(...alive().map(o=>o.zone.length));
+    if(max===0){L("Curfew — no rats anywhere. Discarded.","sys");done();return;}
+    const tops=alive().filter(o=>o.zone.length===max);
+    if(tops.length>1){L("Curfew — tied for most rats. Discarded.","sys");done();return;}
+    const o=tops[0];
+    if(o.human){
+      ask("Curfew — you have the most rats. Move one?", [{label:"Move a rat",value:"y"},{label:"Decline",value:"n"}], v=>{
+        if(v==="n"){done();return;}
+        ask("Which rat?", o.zone.map((r,i)=>({label:ratLabel(r,i), value:i})), zi=>{
+          ask("To whose zone?", alive().filter(x=>x.i!==o.i).map(x=>({label:x.name,value:x.i,sub:`${x.zone.length} rats`})), t=>{
+            const rat=o.zone.splice(zi,1)[0]; G.players[t].zone.push(rat);
+            L(`Curfew — you move a rat to ${G.players[t].name}.`,"me"); done();
+          });
+        });
+      });
+    } else {
+      if(o.zone.length>0){
+        const tgt=opps(o.i).sort((a,b)=>b.zone.length-a.zone.length)[0];
+        if(tgt){ const rat=o.zone.splice(0,1)[0]; G.players[tgt.i].zone.push(rat);
+          L(`Curfew — ${o.name} moves a rat onto ${tgt.name}.`); }
       }
-    } catch(e) {}
-    socket.on('room_created', ({code, pi: p, slots: s}) => {
-      setRoomCode(code); setPi(p); piRef.current=p; setPhase('waiting'); setSlots(s); setIsCreator(true);
-      try{sessionStorage.setItem('tw_session',JSON.stringify({code,name}));}catch(e){}
+      done();
+    }
+    return;
+  }
+  done();
+}
+
+/* ============ TURN TRIGGERS ============ */
+function startTurnTriggers(pIdx, done){
+  const pl=G.players[pIdx];
+  pl.fortify=false;
+  if(G.mark && G.mark.placer===pIdx){ G.mark=null; L("Mark expires.","sys"); }
+  if(G.mark2 && G.mark2.placer===pIdx){ G.mark2=null; L("Mark 2.0 expires untriggered.","sys"); }
+  G.bounties=G.bounties.filter(b=>{ if(b.placer===pIdx){L("A Bounty expires.","sys");return false;} return true; });
+  G.fusions=G.fusions.filter(f=>{ if(f.placer===pIdx){L("Kitchen Fusion expires.","sys");return false;} return true; });
+  // Rat Away (own)
+  for(let i=pl.zone.length-1;i>=0;i--){
+    if(pl.zone[i].att && pl.zone[i].att.card.n==="Rat Away"){
+      ratToPile(pIdx,i); L(`${pl.name}'s Rat Away triggers — a rat returns to the pile.`);
+    }
+  }
+  // Pregnant Rat (in my zone, placed by opponents)
+  for(const r of pl.zone.slice()){
+    if(r.att && r.att.card.n==="Pregnant Rat"){
+      toDiscard(r.att.card); r.att=null;
+      zoneRat(pIdx);
+      L(`A Pregnant Rat in ${pl.name}'s zone gives birth — now one rat more.`,"dmg");
+    }
+  }
+  // Debt payments (recurring until first successful payment)
+  const myDebts=G.debts.filter(d=>d.debtor===pIdx);
+  const payLoop=(i)=>{
+    if(i>=myDebts.length){done();return;}
+    const d=myDebts[i], cred=G.players[d.creditor];
+    if(!cred.alive || pl.hand.length===0){ payLoop(i+1); return; }
+    if(pl.human){
+      ask(`Debt — give 1 card to ${cred.name}:`, pl.hand.map(c=>({label:c.n, value:c.id, sub:DEFS[c.n].ds})), id=>{
+        cred.hand.push(removeHand(pl,id));
+        L(`You pay your Debt to ${cred.name}.`,"me"); payLoop(i+1);
+      });
+    } else {
+      sh(pl.hand); cred.hand.push(pl.hand.pop());
+      L(`${pl.name} pays their Debt to ${cred.name}.`); payLoop(i+1);
+    }
+  };
+  payLoop(0);
+}
+function endTurnTriggers(pIdx, done){
+  // Chillis placed by this player: fresh -> armed; armed -> detonate
+  const dets=[];
+  for(const o of alive()){
+    for(let i=o.zone.length-1;i>=0;i--){
+      const r=o.zone[i];
+      if(r.att && r.att.card.n==="Chilli" && r.att.placer===pIdx){
+        if(r.att.fresh) r.att.fresh=false;
+        else dets.push({o:o.i});
+      }
+    }
+  }
+  const loop=(k)=>{
+    if(k>=dets.length){done();return;}
+    const oi=dets[k].o, o=G.players[oi];
+    const zi=o.zone.findIndex(r=>r.att && r.att.card.n==="Chilli" && r.att.placer===pIdx && !r.att.fresh);
+    if(zi<0){loop(k+1);return;}
+    ratToPile(oi,zi);
+    L(`🌶 Chilli detonates in ${o.name}'s zone!`,"dmg");
+    damage(oi,"Chilli",()=>loop(k+1));
+  };
+  loop(0);
+}
+
+/* ============ SHARED CARD RESOLVERS (used by human + AI) ============ */
+function doSetup(pIdx, boost, done){
+  const pl=G.players[pIdx];
+  const n=boost?3:2;
+  let k=0;
+  const loop=()=>{
+    if(k>=n){
+      if(pl.hand.length===0){done();return;}
+      if(pl.human){
+        ask("Setup — discard 1 card:", pl.hand.map(c=>({label:c.n,value:c.id,sub:DEFS[c.n].ds})), id=>{
+          toDiscard(removeHand(pl,id)); done();
+        });
+      } else { sh(pl.hand); toDiscard(pl.hand.pop()); done(); }
+      return;
+    }
+    k++; drawCard(pIdx, loop);
+  };
+  loop();
+}
+function doRussianRoulette(pIdx, done){
+  const pl=G.players[pIdx];
+  if(pl.zone.length===0){done();return;}
+  const contributors=opps(pIdx);
+  const pool=[];
+  ratToPile(pIdx, pl.zone.length-1); G.pile--; // rat leaves zone into the pool (not pile yet)
+  pool.push({rat:true});
+  const collect=(i)=>{
+    if(i>=contributors.length){ spin(); return; }
+    const o=contributors[i];
+    if(o.hand.length===0){ collect(i+1); return; }
+    if(o.human){
+      ask("Russian Roulette — add 1 card to the pool:", o.hand.map(c=>({label:c.n,value:c.id,sub:DEFS[c.n].ds})), id=>{
+        pool.push({card:removeHand(o,id)}); collect(i+1);
+      });
+    } else { sh(o.hand); pool.push({card:o.hand.pop()}); collect(i+1); }
+  };
+  const spin=()=>{
+    sh(pool);
+    const drawers=alive();
+    L("Russian Roulette — the pool is shuffled. Everyone draws blind...","sys");
+    for(const o of drawers){
+      const item=pool.pop();
+      if(!item){ continue; }
+      if(item.rat){ G.players[o.i].zone.push({id:++RID, att:null}); L(`${o.name} draws the RAT — straight into their zone.`,"dmg"); }
+      else { o.hand.push(item.card); L(`${o.name} draws a card from the pool.`); }
+    }
+    for(const item of pool){ if(item.card) toDiscard(item.card); if(item.rat) G.pile++; }
+    done();
+  };
+  collect(0);
+}
+function doRatDividend(pIdx, done){
+  const pl=G.players[pIdx];
+  const n=pl.zone.length;
+  if(n===0){done();return;}
+  let k=0;
+  const loop=()=>{
+    if(k>=n||G.over){done();return;}
+    k++;
+    reshuffle();
+    if(G.deck.length===0){done();return;}
+    const c=G.deck.pop();
+    if(c.n==="Rat"){ G.deck.push(c); L(`${pl.name}'s Dividend reveals a Rat — returned to the deck top.`); loop(); }
+    else if(isWD(c.n)){ toDiscard(c); L(`Dividend draws ${c.n} — resolves.`,"sys"); resolveWD(c.n,pIdx,loop); }
+    else { pl.hand.push(c); if(pl.human)L(`Dividend: you draw ${c.n}.`,"me"); else L(`${pl.name} draws a Dividend card.`); loop(); }
+  };
+  L(`${pl.name} plays Rat Dividend — ${n} draw(s).`);
+  loop();
+}
+function attachToRat(pIdx, targetIdx, zi, card, placer){
+  G.players[targetIdx].zone[zi].att={card, placer, fresh:true};
+}
+
+/* ============ HUMAN CARD PLAY ============ */
+function playable(c){
+  const me=G.players[0];
+  if(G.cur!==0 || G.over || REF.modal || G.busy) return false;
+  switch(c.n){
+    case "Health Inspection": return !G.heldRatUsed && opps(0).some(o=>canHitHI(0,o) && zoneAvail(o.i));
+    case "Hot Ratato": return me.zone.length>0 && opps(0).some(o=>canHitHR(0,o) && zoneAvail(o.i));
+    case "Held Rat": return G.pile>0;
+    case "Infestation": return G.pile>0 || (me.zone.length>0 && me.hand.some(x=>x.n==="Food"));
+    case "Plague": return G.pile>0;
+    case "Exterminator": case "Rattatouli": case "Rat Away": case "Russian Roulette": return me.zone.length>0;
+    case "Chilli": case "Pregnant Rat": return opps(0).some(o=>o.zone.length>0 && !o.fortify && zoneAvail(o.i));
+    case "Rat Dividend": return me.zone.length>0;
+    case "Block": case "Ambush": case "Redirect CW": case "Redirect CCW": return false;
+    case "Food": {
+      const foodCount = me.hand.filter(x=>x.n==="Food").length;
+      const canBribe = foodCount>=2 && me.zone.length>0;
+      const canForce = foodCount>=3 && opps(0).length>0;
+      return canBribe || canForce;
+    }
+    case "Shakedown": case "Stakeout": case "Mark": case "Mark 2.0": case "Bounty":
+      return opps(0).length>0;
+    case "Kitchen Fusion": return opps(0).some(o=>o.alive && o.i!==0);
+    default: return true;
+  }
+}
+function askBoost(c, cb){
+  const me=G.players[0];
+  if(DEFS[c.n].boost && me.hand.some(x=>x.n==="Food"))
+    ask(`${c.n} — spend 1 Food to boost? (${DEFS[c.n].boost})`, [{label:"Boost it",value:true},{label:"No boost",value:false}], cb);
+  else cb(false);
+}
+function humanPlay(cardId){
+  const me=G.players[0];
+  const c=me.hand.find(x=>x.id===cardId);
+  if(!c || !playable(c)) return;
+  const spend=()=>{ toDiscard(removeHand(me,cardId)); };
+  const after=()=>{ REF.refresh(); checkOver(()=>{}); };
+  const oppList=(filter)=>opps(0).filter(filter||(()=>true)).map(o=>({label:o.name,value:o.i,sub:`${o.zone.length} rats · ${o.hp} HP · ${o.hand.length} cards`}));
+
+  switch(c.n){
+    case "Health Inspection": {
+      ask("Inspect whom?", oppList(o=>canHitHI(0,o) && zoneAvail(o.i)), t=>{
+        const T=G.players[t];
+        const fire=zi=>{ spend(); declareAttack({kind:"HI",from:0,to:t,ratZi:zi}, after); };
+        if(T.zone.some(r=>r.att)) ask("Which rat do you fire?", T.zone.map((r,i)=>({label:ratLabel(r,i),value:i})), fire);
+        else fire(0);
+      });
+      break; }
+    case "Hot Ratato": {
+      askBoost(c, boost=>{
+        // build clockwise target options (1, 2, 3 seats), skip dead players
+        const cwOpts = [];
+        const labels = ["1 seat","2 seats","3 seats"];
+        for(let dist=1; dist<=3; dist++){
+          let idx=0; let steps=0;
+          let i=0;
+          for(let k=0;k<G.np;k++){
+            i=(i+1)%G.np;
+            if(G.players[i].alive){ steps++; if(steps===dist){idx=i;break;} }
+          }
+          if(idx!==0 && canHitHR(0,G.players[idx]) && zoneAvail(idx))
+            cwOpts.push({label:`${labels[dist-1]} → ${G.players[idx].name}`, value:idx, sub:`${G.players[idx].zone.length} rats · ${G.players[idx].hp} HP`});
+        }
+        if(cwOpts.length===0){ L("No valid clockwise targets.","me"); return; }
+        ask("Send rat how far clockwise?", cwOpts, t=>{
+          const fire=zi=>{ spend(); if(boost)spendFood(me); declareAttack({kind:"HR",from:0,to:t,ratZi:zi,boost}, after); };
+          if(me.zone.some(r=>r.att)) ask("Which rat goes first?", me.zone.map((r,i)=>({label:ratLabel(r,i),value:i})), fire);
+          else fire(0);
+        });
+      });
+      break; }
+    case "Held Rat": {
+      ask("Place the held rat into whose zone?", alive().map(o=>({label:o.name+(o.i===0?" (you)":""),value:o.i,sub:`${o.zone.length} rats`})), t=>{
+        spend(); zoneRat(t); G.heldRatUsed=true;
+        if(t!==0) G.touchedZones.add(t);
+        L(`You place a Held Rat into ${G.players[t].name}'s zone.`,"me"); after();
+      });
+      break; }
+    case "Infestation": {
+      askBoost(c, boost=>{
+        if(boost && me.zone.length>0){
+          spend(); spendFood(me);
+          ratToPile(0, me.zone.length-1); G.pile--; G.deck.push(mk("Rat"));
+          L("Infestation (boost) — a rat from your own zone goes on top of the deck.","me"); after();
+        } else if(G.pile>0){
+          spend(); G.pile--; G.deck.push(mk("Rat"));
+          L("Infestation — a rat from the pile goes on top of the deck.","me"); after();
+        }
+      });
+      break; }
+    case "Plague": {
+      const max=Math.min(3,G.pile);
+      ask("Plague — how many rats on top of the deck?", Array.from({length:max},(_,i)=>({label:String(i+1),value:i+1})), n=>{
+        spend(); for(let k=0;k<n;k++){G.pile--; G.deck.push(mk("Rat"));}
+        L(`Plague — ${n} rat(s) placed on top of the deck.`,"me"); after();
+      });
+      break; }
+    case "Setup": askBoost(c, boost=>{ spend(); if(boost)spendFood(me); L("You play Setup.","me"); doSetup(0,boost,after); }); break;
+    case "Fortify": spend(); me.fortify=true; L("You Fortify — zone immune until your next turn.","me"); after(); break;
+    case "Exterminator": {
+      askBoost(c, boost=>{
+        ask("Remove which rat?", me.zone.map((r,i)=>({label:ratLabel(r,i),value:i})), zi=>{
+          spend(); if(boost)spendFood(me);
+          ratToPile(0,zi);
+          if(boost && me.zone.length>0) ratToPile(0,0);
+          L(`Exterminator — ${boost?2:1} rat(s) removed to the pile.`,"me"); after();
+        });
+      });
+      break; }
+    case "Mark": ask("Mark whom?", oppList(), t=>{ spend(); G.mark={placer:0,target:t}; L(`You Mark ${G.players[t].name} — next Health Inspection hits them.`,"me"); after(); }); break;
+    case "Mark 2.0": ask("Mark 2.0 — whom?", oppList(), t=>{ spend(); G.mark2={placer:0,target:t}; L(`Mark 2.0 on ${G.players[t].name} — next rat drawn goes to them.`,"me"); after(); }); break;
+    case "Stakeout": {
+      askBoost(c, boost=>{
+        ask("Stake out whom?", oppList(), t=>{
+          spend(); if(boost)spendFood(me);
+          const T=G.players[t];
+          const handTxt=T.hand.map(x=>x.n).join(", ")||"(empty)";
+          const fin=()=>{ ask(`${T.name}'s hand: ${handTxt}`, [{label:"Done",value:1}], after); };
+          if(boost){
+            ask("Ask the count of which card?", Object.keys(DEFS).filter(n=>n!=="Rat").map(n=>({label:n,value:n})), nm=>{
+              const cnt=T.hand.filter(x=>x.n===nm).length;
+              L(`Stakeout boost — ${T.name} holds ${cnt} × ${nm}.`,"me"); fin();
+            });
+          } else fin();
+        });
+      });
+      break; }
+    case "Shakedown": {
+      askBoost(c, boost=>{
+        ask("Shake down whom?", oppList(o=>o.hand.length>0), t=>{
+          const T=G.players[t];
+          const guess=()=>ask("Name the card you demand:", Object.keys(DEFS).filter(n=>n!=="Rat").map(n=>({label:n,value:n})), nm=>{
+            spend();
+            const i=T.hand.findIndex(x=>x.n===nm);
+            if(i>=0){ me.hand.push(T.hand.splice(i,1)[0]); L(`Shakedown hits — ${T.name} hands over a ${nm}.`,"me"); }
+            else L(`Shakedown misses — ${T.name} has no ${nm}.`,"me");
+            after();
+          });
+          if(boost){ spendFood(me); ask(`${T.name}'s hand: ${T.hand.map(x=>x.n).join(", ")}`, [{label:"Now demand a card",value:1}], guess); }
+          else guess();
+        });
+      });
+      break; }
+    case "Bounty": {
+      askBoost(c, boost=>{
+        ask("Put a Bounty on whom?", oppList(), t=>{
+          spend(); if(boost)spendFood(me);
+          G.bounties.push({placer:0,target:t,keep:boost?4:2});
+          L(`Bounty placed on ${G.players[t].name} (${boost?4:2} cards).`,"me"); after();
+        });
+      });
+      break; }
+    case "Laundering": {
+      const max=Math.min(3, me.hand.length-1);
+      if(max<=0) break;
+      ask("Launder how many cards?", Array.from({length:max},(_,i)=>({label:String(i+1),value:i+1})), n=>{
+        spend();
+        pickCardsFromList("Discard", me.hand.slice(), n, picked=>{
+          picked.forEach(x=>toDiscard(removeHand(me,x.id)));
+          let k=0; const loop=()=>{ if(k>=n){after();return;} k++; drawCard(0,loop); };
+          L(`Laundering — ${n} discarded, ${n} drawn.`,"me"); loop();
+        });
+      });
+      break; }
+    case "Kitchen Fusion": ask("Fuse with whom (they can't target you)?", oppList(), t=>{ spend(); G.fusions.push({placer:0,target:t}); G.touchedZones.add(t); L(`Kitchen Fusion — ${G.players[t].name} cannot target you until your next turn.`,"me"); after(); }); break;
+    case "Surge": {
+      ask("Surge:", [{label:"Draw 2 yourself",value:"self"},{label:"Force a player to draw 1",value:"force"}], v=>{
+        if(v==="self"){ spend(); L("Surge — you draw 2.","me"); drawCard(0,()=>drawCard(0,after)); }
+        else ask("Force whom?", alive().filter(o=>o.i!==0).map(o=>({label:o.name,value:o.i})), t=>{
+          spend(); L(`Surge — ${G.players[t].name} is forced to draw.`,"me"); drawCard(t,after);
+        });
+      });
+      break; }
+    case "Russian Roulette": spend(); L("You spin up a Russian Roulette.","me"); doRussianRoulette(0,after); break;
+    case "Scout": {
+      spend(); reshuffle();
+      const top=G.deck.slice(-3).reverse();
+      if(top.length===0){after();break;}
+      ask(`Top of deck: ${top.map(x=>x.n).join(", ")}. Keep which?`, top.map(x=>({label:x.n,value:x.id,sub:DEFS[x.n].ds})), id=>{
+        const i=G.deck.findIndex(x=>x.id===id);
+        const kept=G.deck.splice(i,1)[0];
+        if(kept.n==="Rat"||isWD(kept.n)){ G.deck.push(kept); L("Scout — Rat/WD cards cannot be kept; returned to deck.","sys"); }
+        else { me.hand.push(kept); L(`Scout — you keep ${kept.n}.`,"me"); }
+        after();
+      });
+      break; }
+    case "Chilli": {
+      ask("Chilli — whose rat?", oppList(o=>o.zone.length>0&&!o.fortify&&zoneAvail(o.i)), t=>{
+        ask("Attach to which rat?", G.players[t].zone.map((r,i)=>({label:ratLabel(r,i),value:i})), zi=>{
+          removeHand(me,cardId);
+          placeChilli(0,t,zi,c,after);
+        });
+      });
+      break; }
+    case "Rattatouli": {
+      ask("Convert which rat to Food?", me.zone.map((r,i)=>({label:ratLabel(r,i),value:i})), zi=>{
+        spend(); ratToPile(0,zi); me.hand.push(mk("Food"));
+        L("Rattatouli — a rat becomes Food in your hand.","me"); after();
+      });
+      break; }
+    case "Rat Dividend": spend(); doRatDividend(0,after); break;
+    case "Pregnant Rat": {
+      ask("Pregnant Rat — whose rat?", oppList(o=>o.zone.length>0&&!o.fortify&&zoneAvail(o.i)), t=>{
+        ask("Attach to which rat?", G.players[t].zone.map((r,i)=>({label:ratLabel(r,i),value:i})), zi=>{
+          removeHand(me,cardId); attachToRat(0,t,zi,c,0);
+          G.touchedZones.add(t);
+          L(`Pregnant Rat attached in ${G.players[t].name}'s zone.`,"me"); after();
+        });
+      });
+      break; }
+    case "Rat Away": {
+      ask("Rat Away — which of your rats?", me.zone.map((r,i)=>({label:ratLabel(r,i),value:i})), zi=>{
+        removeHand(me,cardId); attachToRat(0,0,zi,c,0);
+        L("Rat Away attached — that rat leaves at the start of your next turn.","me"); after();
+      });
+      break; }
+    case "Food": {
+      const foodCount = me.hand.filter(x=>x.n==="Food").length;
+      const canBribe = foodCount>=2 && me.zone.length>0;
+      const canForce = foodCount>=3 && opps(0).length>0;
+      const opts = [];
+      if(canBribe) opts.push({label:"Spend 2 — bribe a rat (shuffle it into deck)",value:"bribe"});
+      if(canForce) opts.push({label:"Spend 3 — force all opponents to discard 1, keep up to 3",value:"force"});
+      ask("Food — choose an action:", opts, v=>{
+        if(v==="bribe"){
+          ask("Bribe which rat out of your zone?", me.zone.map((r,i)=>({label:ratLabel(r,i),value:i})), zi=>{
+            // spend 2 Food
+            removeHand(me,cardId);
+            const secondFood = me.hand.find(x=>x.n==="Food");
+            if(secondFood) toDiscard(removeHand(me, secondFood.id));
+            // remove rat from zone, shuffle into deck
+            const rat = me.zone.splice(zi,1)[0];
+            G.deck.splice(Math.floor(Math.random()*(G.deck.length+1)),0,rat);
+            L("Food x2 — you bribe a rat out of your zone. It shuffles into the deck.","me");
+            after();
+          });
+        } else {
+          // spend 3 Food
+          const thirdFood = me.hand.filter(x=>x.n==="Food");
+          removeHand(me,cardId);
+          if(thirdFood.length>=1) toDiscard(removeHand(me,thirdFood[0].id));
+          if(thirdFood.length>=2) toDiscard(removeHand(me,thirdFood[1].id));
+          // force all opponents to discard 1
+          const discarded = [];
+          for(const o of opps(0)){
+            if(o.hand.length>0){
+              const ri = Math.floor(Math.random()*o.hand.length);
+              const dc = o.hand.splice(ri,1)[0];
+              toDiscard(dc);
+              discarded.push({card:dc, name:o.name});
+              L(`Food x3 — ${o.name} discards ${dc.n}.`,"dmg");
+            }
+          }
+          // human picks up to 3 of those discarded cards
+          const eligible = discarded.map(d=>d.card).filter(d=>d.n!=="Rat"&&!isWD(d.n));
+          if(eligible.length===0){ L("Food x3 — no cards to keep.","me"); after(); return; }
+          const keep = Math.min(3,eligible.length);
+          if(keep===0){ after(); return; }
+          const foodKept=[];
+          const foodPickStep=()=>{
+            if(foodKept.length>=keep||eligible.length===0){
+              for(const k of foodKept){
+                const di=G.discard.findIndex(x=>x.id===k.id);
+                if(di!==-1) G.discard.splice(di,1);
+                me.hand.push(k);
+              }
+              L(`Food x3 — you keep ${foodKept.length} card(s).`,"me"); after(); return;
+            }
+            const opts=eligible.map(c=>({label:c.n,value:c.id,sub:DEFS[c.n].ds}));
+            if(foodKept.length>0) opts.push({label:"Done (keep "+foodKept.length+")",value:"__done__"});
+            ask("Keep up to "+keep+" cards ("+(foodKept.length+1)+"/"+keep+"):", opts, id=>{
+              if(id==="__done__"){
+                for(const k of foodKept){
+                  const di=G.discard.findIndex(x=>x.id===k.id);
+                  if(di!==-1) G.discard.splice(di,1);
+                  me.hand.push(k);
+                }
+                L(`Food x3 — you keep ${foodKept.length} card(s).`,"me"); after(); return;
+              }
+              const i=eligible.findIndex(c=>c.id===id);
+              foodKept.push(eligible.splice(i,1)[0]);
+              foodPickStep();
+            });
+          };
+          foodPickStep();
+        }
+      });
+      break; }
+  }
+}
+/* Chilli needs a blockable placement — proper implementation */
+function placeChilli(pIdx, t, zi, card, done){
+  const T=G.players[t];
+  const finish=()=>{ attachToRat(pIdx,t,zi,card,pIdx); L(`🌶 Chilli attached to a rat in ${T.name}'s zone.`, pIdx===0?"me":""); done(); };
+  const hasBlock=T.hand.some(x=>x.n==="Block");
+  if(!hasBlock){ finish(); return; }
+  if(T.human){
+    ask(`${G.players[pIdx].name} plays a Chilli on your rat. Block it?`, [{label:"Block",value:"b"},{label:"Let it land",value:"n"}], v=>{
+      if(v==="b"){ useReactive(T,"Block"); toDiscard(card); L("You Block the Chilli.","me"); done(); }
+      else finish();
     });
-    socket.on('room_joined', ({code, pi: p, slots: s}) => {
-      setRoomCode(code); setPi(p); piRef.current=p; setPhase('waiting'); setSlots(s);
-      try{sessionStorage.setItem('tw_session',JSON.stringify({code,name}));}catch(e){}
-    });
-    socket.on('lobby_update', ({slots: s}) => setSlots(s));
-    socket.on('state', g => { setG(g); setPhase('game'); });
-    socket.on('error', msg => setError(msg));
-    socket.on('stakeout', data => setStakeout(data));
-    socket.on('scout', ({top}) => setScout(top));
-    socket.on('player_disconnected', ({name: n}) => setNotif(`${n} disconnected.`));
-    return () => socket.removeAllListeners();
-  }, []);
+  } else {
+    if(Math.random()<0.6){ useReactive(T,"Block"); toDiscard(card); L(`${T.name} Blocks the Chilli.`); done(); }
+    else finish();
+  }
+}
 
-  useEffect(() => {
-    if(!G || pi===null || !G.pendingModal) return;
-    if(G.pendingModal.pi!==pi) return;
-    if(G.pendingModal.kind==='SETUP'||G.pendingModal.kind==='SCOUT') setPeekSel([]);
-  }, [G&&G.pendingModal&&G.pendingModal.kind]);
+/* ============ AI ============ */
+function aiPlays(pIdx, done){
+  const pl=G.players[pIdx];
+  let plays=0;
+  const step=()=>{
+    if(G.over || !pl.alive || plays>=4){ done(); return; }
+    plays++;
+    REF.refresh();
+    const has=n=>pl.hand.find(c=>c.n===n);
+    const use=c=>toDiscard(removeHand(pl,c.id));
+    const hasFood=()=>pl.hand.some(c=>c.n==="Food");
+    let c;
 
-  const act   = action => socket.emit('action',   {code:roomCode, pi:piRef.current, action});
-  const react = action => socket.emit('reaction', {code:roomCode, pi:piRef.current, action});
-  function ask(prompt, items, cb) { setModal({prompt,items,cb}); }
-  function answer(v) { const m=modal; setModal(null); m.cb(v); }
+    // 1. Rattatouli: convert a rat to food
+    if((c=has("Rattatouli")) && pl.zone.length>0){
+      use(c); ratToPile(pIdx, pl.zone.length-1); pl.hand.push(mk("Food"));
+      L(`${pl.name} plays Rattatouli — a rat becomes Food.`); REF.refresh(); setTimeout(step,400); return;
+    }
+    // 2. Rat Away own rat
+    if((c=has("Rat Away")) && pl.zone.length>0 && !pl.zone.some(r=>r.att&&r.att.card.n==="Rat Away")){
+      removeHand(pl,c.id); attachToRat(pIdx,pIdx,0,c,pIdx);
+      L(`${pl.name} attaches Rat Away to one of their rats.`); REF.refresh(); setTimeout(step,400); return;
+    }
+    // 3. Exterminator if 2+ rats
+    if((c=has("Exterminator")) && pl.zone.length>=2){
+      const boost=hasFood();
+      use(c); if(boost)spendFood(pl);
+      ratToPile(pIdx,0); if(boost&&pl.zone.length>0) ratToPile(pIdx,0);
+      L(`${pl.name} calls the Exterminator — ${boost?2:1} rat(s) removed.`); REF.refresh(); setTimeout(step,400); return;
+    }
+    // 4. Health Inspection at the juiciest target
+    if((c=has("Health Inspection")) && !G.attackUsed && !G.heldRatUsed){
+      const ts=opps(pIdx).filter(o=>canHitHI(pIdx,o)&&zoneAvail(o.i)).sort((a,b)=>(b.zone.length-a.zone.length)||(a.hp-b.hp));
+      if(ts.length){ use(c); G.attackUsed=true;
+        declareAttack({kind:"HI",from:pIdx,to:ts[0].i,ratZi:0}, ()=>{ if(!G.over)step(); else done(); }); return; }
+    }
+    // 5. Hot Ratato: offload rats clockwise (weighted 1/2/3 seats)
+    if((c=has("Hot Ratato")) && pl.zone.length>0){
+      // build clockwise candidates at dist 1,2,3
+      const cwCands=[];
+      for(let dist=1;dist<=3;dist++){
+        let steps=0, i=pIdx;
+        for(let k=0;k<G.np;k++){ i=(i+1)%G.np; if(G.players[i].alive){steps++;if(steps===dist)break;} }
+        if(i!==pIdx && canHitHR(pIdx,G.players[i]) && zoneAvail(i)) cwCands.push({dist,i});
+      }
+      if(cwCands.length>0){
+        // weighted pick: dist1=3, dist2=2, dist3=1
+        const pick=cwCands[Math.floor(Math.random()*cwCands.length)];
+        const boost=hasFood()&&pl.zone.length>=2;
+        use(c); if(boost)spendFood(pl);
+        const zi=Math.max(0,pl.zone.findIndex(r=>!r.att));
+        declareAttack({kind:"HR",from:pIdx,to:pick.i,ratZi:zi<0?0:zi,boost}, ()=>{ if(!G.over)step(); else done(); }); return;
+      }
+    }
+    // 6. Chilli on a rat-holder
+    if((c=has("Chilli"))){
+      const ts=opps(pIdx).filter(o=>o.zone.length>0&&!o.fortify&&zoneAvail(o.i)).sort((a,b)=>a.hp-b.hp);
+      if(ts.length){ removeHand(pl,c.id); placeChilli(pIdx, ts[0].i, 0, c, step); return; }
+    }
+    // 7. Pregnant Rat
+    if((c=has("Pregnant Rat"))){
+      const ts=opps(pIdx).filter(o=>o.zone.length>0&&!o.fortify&&zoneAvail(o.i));
+      if(ts.length){ removeHand(pl,c.id); attachToRat(pIdx,ts[0].i,0,c,pIdx);
+        L(`${pl.name} attaches a Pregnant Rat in ${ts[0].name}'s zone.`); REF.refresh(); setTimeout(step,400); return; }
+    }
+    // 8. Held Rat into the leader's zone
+    if((c=has("Held Rat")) && G.pile>0 && !G.attackUsed){
+      const ts=opps(pIdx).sort((a,b)=>b.hp-a.hp);
+      if(ts.length){ use(c); zoneRat(ts[0].i); G.heldRatUsed=true;
+        L(`${pl.name} drops a Held Rat into ${ts[0].name}'s zone.`); REF.refresh(); setTimeout(step,400); return; }
+    }
+    // 9. Fortify when holding rats
+    if((c=has("Fortify")) && pl.zone.length>=2 && !pl.fortify){
+      use(c); pl.fortify=true; L(`${pl.name} Fortifies their zone.`); REF.refresh(); setTimeout(step,400); return;
+    }
+    // 10. Mark the rat leader
+    if((c=has("Mark")) && !G.mark){
+      const ts=opps(pIdx).filter(o=>o.zone.length>0).sort((a,b)=>b.zone.length-a.zone.length);
+      if(ts.length){ use(c); G.mark={placer:pIdx,target:ts[0].i};
+        L(`${pl.name} Marks ${ts[0].name}.`); REF.refresh(); setTimeout(step,400); return; }
+    }
+    // 11. Mark 2.0
+    if((c=has("Mark 2.0")) && !G.mark2){
+      const ts=opps(pIdx).sort((a,b)=>a.hp-b.hp);
+      if(ts.length){ use(c); G.mark2={placer:pIdx,target:ts[0].i};
+        L(`${pl.name} plays Mark 2.0 on ${ts[0].name}.`); REF.refresh(); setTimeout(step,400); return; }
+    }
+    // 12. Kitchen Fusion against the biggest threat
+    if((c=has("Kitchen Fusion")) && pl.zone.length>0){
+      const ts=opps(pIdx).sort((a,b)=>b.hand.length-a.hand.length);
+      if(ts.length){ use(c); G.fusions.push({placer:pIdx,target:ts[0].i});
+        G.touchedZones.add(ts[0].i);
+        L(`${pl.name} plays Kitchen Fusion on ${ts[0].name}.`); REF.refresh(); setTimeout(step,400); return; }
+    }
+    // 13. Bounty on lowest HP
+    if((c=has("Bounty"))){
+      const ts=opps(pIdx).filter(o=>o.hp===1);
+      if(ts.length){ use(c); G.bounties.push({placer:pIdx,target:ts[0].i,keep:2});
+        L(`${pl.name} puts a Bounty on ${ts[0].name}.`); REF.refresh(); setTimeout(step,400); return; }
+    }
+    // 14. Debt on biggest hand
+    if((c=has("Debt")) && !G.debts.some(d=>d.creditor===pIdx)){
+      const ts=opps(pIdx).sort((a,b)=>b.hand.length-a.hand.length);
+      if(ts.length && ts[0].hand.length>=3){ use(c); G.debts.push({debtor:ts[0].i,creditor:pIdx});
+        L(`${pl.name} plays Debt on ${ts[0].name}.`); step(); return; }
+    }
+    // 15. Infestation / Plague to salt the deck
+    if((c=has("Plague")) && G.pile>=2 && Math.random()<0.6){
+      use(c); const n=Math.min(3,G.pile);
+      for(let k=0;k<n;k++){G.pile--; G.deck.push(mk("Rat"));}
+      L(`${pl.name} plays Plague — ${n} rats on top of the deck.`); REF.refresh(); setTimeout(step,400); return;
+    }
+    if((c=has("Infestation")) && G.pile>0 && Math.random()<0.5){
+      use(c); G.pile--; G.deck.push(mk("Rat"));
+      L(`${pl.name} plays Infestation — a rat tops the deck.`); REF.refresh(); setTimeout(step,400); return;
+    }
+    // 16. Value plays
+    if((c=has("Setup"))){ const boost=hasFood()&&Math.random()<0.5; use(c); if(boost)spendFood(pl);
+      L(`${pl.name} plays Setup.`); REF.refresh(); doSetup(pIdx,boost,()=>{REF.refresh();step();}); return; }
+    if((c=has("Laundering")) && pl.hand.length>=4){
+      use(c); const n=Math.min(3,pl.hand.length); sh(pl.hand);
+      for(let k=0;k<n;k++)toDiscard(pl.hand.pop());
+      let k=0; const loop=()=>{ if(k>=n){REF.refresh();step();return;} k++; drawCard(pIdx,loop); };
+      L(`${pl.name} plays Laundering (${n}).`); loop(); return;
+    }
+    if((c=has("Surge")) && Math.random()<0.6){ use(c); L(`${pl.name} Surges — draws 2.`); drawCard(pIdx,()=>drawCard(pIdx,step)); return; }
+    if((c=has("Rat Dividend")) && pl.zone.length>=2){ use(c); doRatDividend(pIdx,step); return; }
+    if((c=has("Russian Roulette")) && pl.zone.length>0 && Math.random()<0.5){
+      use(c); L(`${pl.name} spins up a Russian Roulette.`); doRussianRoulette(pIdx,step); return; }
+    if((c=has("Scout"))){ use(c); reshuffle();
+      const top=G.deck.slice(-3).reverse();
+      const pick=top.find(x=>x.n!=="Rat"&&!isWD(x.n));
+      if(pick){ G.deck.splice(G.deck.findIndex(x=>x.id===pick.id),1); pl.hand.push(pick); }
+      L(`${pl.name} Scouts the deck.`); REF.refresh(); setTimeout(step,400); return; }
+    if((c=has("Shakedown"))){
+      const ts=opps(pIdx).filter(o=>o.hand.length>0);
+      if(ts.length){ use(c); const T=ts[0];
+        const guessPool=["Health Inspection","Block","Hot Ratato","Food"];
+        const nm=guessPool[Math.floor(Math.random()*guessPool.length)];
+        const i=T.hand.findIndex(x=>x.n===nm);
+        if(i>=0){ pl.hand.push(T.hand.splice(i,1)[0]); L(`${pl.name} shakes down ${T.name} — takes a ${nm}.`); }
+        else L(`${pl.name} shakes down ${T.name} for a ${nm} — miss.`);
+        step(); return; }
+    }
+    if((c=has("Stakeout"))){ const ts=opps(pIdx); if(ts.length){ use(c);
+      L(`${pl.name} stakes out ${ts[0].name}'s hand.`); REF.refresh(); setTimeout(step,400); return; } }
+    done();
+  };
+  step();
+}
 
-  // ── lobby ───────────────────────────────────────────────
-  if(phase==='lobby') return (
-    <div className="lobby">
-      <h1 className="title" style={{fontSize:30}}>🐀 TURF WARS</h1>
-      <input placeholder="Your name" value={name} onChange={e=>setName(e.target.value)} maxLength={16}/>
-      {error && <div style={{color:'var(--red)',fontSize:13,textAlign:'center'}}>{error}</div>}
-      <div>
-        <div className="mut" style={{marginBottom:8}}>How many players total?</div>
-        <div className="row">
-          {[4,5,6,7,8].map(n=><button key={n} style={np===n?{borderColor:'var(--amber)'}:{}} onClick={()=>setNp(n)}>{n}P</button>)}
-        </div>
-        <button className="startbtn" style={{marginTop:10}} disabled={!name.trim()}
-          onClick={()=>{if(name.trim()) socket.emit('create_room',{name:name.trim(),np});}}>
-          Create Room
-        </button>
+/* ============ TURN LOOP ============ */
+function checkOver(done){ if(G.over) REF.refresh(); done(); }
+function advanceTurn(){
+  let i=G.cur;
+  do{ i=(i+1)%G.np; if(i===0) G.round++; }while(!G.players[i].alive);
+  G.cur=i; G.attackUsed=false; G.heldRatUsed=false; G.touchedZones=new Set();
+}
+function runTurn(){
+  if(G.over){ REF.refresh(); return; }
+  const pIdx=G.cur, pl=G.players[pIdx];
+  G.busy=!pl.human;
+  REF.refresh();
+  startTurnTriggers(pIdx, ()=>{
+    if(G.over){REF.refresh();return;}
+    if(pl.human){
+      G.busy=false;
+      drawCard(0, ()=>{
+        L("— Your turn —","me");
+        REF.refresh();
+      });
+    } else {
+      setTimeout(()=>{
+        drawCard(pIdx, ()=>{
+          if(G.over){G.busy=false;REF.refresh();return;}
+          aiPlays(pIdx, ()=>{
+            if(G.over){G.busy=false;REF.refresh();return;}
+            endTurnTriggers(pIdx, ()=>{
+              if(G.over){G.busy=false;REF.refresh();return;}
+              advanceTurn(); runTurn();
+            });
+          });
+        });
+      }, 500);
+    }
+  });
+}
+function humanEndTurn(){
+  if(G.cur!==0||G.over||REF.modal) return;
+  endTurnTriggers(0, ()=>{
+    if(G.over){REF.refresh();return;}
+    advanceTurn(); runTurn();
+  });
+}
+
+/* ============ UI ============ */
+function PlayerPanel({p}){
+  const tags=[];
+  if(p.fortify) tags.push(<span key="f" className="tag">Fortified</span>);
+  if(G.mark&&G.mark.target===p.i) tags.push(<span key="m" className="tag warn">Marked</span>);
+  if(G.mark2&&G.mark2.target===p.i) tags.push(<span key="m2" className="tag warn">Mark 2.0</span>);
+  if(G.bounties.some(b=>b.target===p.i)) tags.push(<span key="b" className="tag warn">Bounty</span>);
+  if(G.debts.some(d=>d.debtor===p.i)) tags.push(<span key="d" className="tag">In debt</span>);
+  if(G.fusions.some(f=>f.placer===p.i)) tags.push(<span key="kf" className="tag">Fusion</span>);
+  return (
+    <div className={"pp"+(G.cur===p.i&&!G.over?" cur":"")+(p.alive?"":" dead")}>
+      <h3><span>{p.name}{tags}</span><span className="hp mono">{p.alive?"♥".repeat(p.hp):"☠"}</span></h3>
+      <div className="zone">
+        {p.zone.length===0 && <span className="meta">zone clear</span>}
+        {p.zone.map((r,i)=><span key={r.id} className={`rat${r.att?" rat-att":""}`}>🐀{r.att&&<span className="att">{r.att.card.n}</span>}</span>)}
       </div>
-      <div className="mut">or join a friends room</div>
-      <div className="row">
-        <input placeholder="Room code" value={joinCode} onChange={e=>setJoinCode(e.target.value.toUpperCase())} maxLength={4}/>
-        <button disabled={!name.trim()||joinCode.length!==4}
-          onClick={()=>socket.emit('join_room',{code:joinCode,name:name.trim()})}>Join</button>
-      </div>
+      <div className="meta">{p.hand.length} cards in hand</div>
     </div>
   );
-
-  // ── waiting / lobby ─────────────────────────────────────
-  if(phase==='waiting') {
-    const toggleSlot = (i) => {
-      if(!isCreator || i===0) return;
-      const updated = slots.map((s,idx)=>idx===i ? {...s, ai:!s.ai, name: s.ai ? '' : (DEFS ? `Bot ${i}` : `Bot ${i}`)} : s);
-      // give AI slots default names
-      const named = updated.map((s,idx)=>s.ai&&!s.name ? {...s,name:`Bot ${idx}`} : s);
-      setSlots(named);
-      socket.emit('update_slots', {code:roomCode, slots:named});
-    };
-    const humanSlotsFilled = slots.filter((s,i)=>!s.ai&&i>0).every(s=>!!s.name);
-    const canStart = isCreator && humanSlotsFilled;
+}
+function App(){
+  const [,setTick]=useState(0);
+  const [np,setNp]=useState(null);
+  const [showRef,setShowRef]=useState(false);
+  REF.refresh=()=>setTick(t=>t+1);
+  if(np===null){
     return (
-      <div className="lobby">
-        <h1 className="title" style={{fontSize:24,textAlign:'center'}}>🐀 TURF WARS</h1>
-        <div className="mut">Share this code with human players:</div>
-        <div className="code">{roomCode}</div>
-        <div style={{display:'flex',flexDirection:'column',gap:8}}>
-          {slots.map((s,i)=>(
-            <div key={i} className="slot">
-              <span style={{fontSize:16}}>{s.ai?'🤖':'👤'}</span>
-              <span className="sname">{s.name||(i===0?name:'Waiting...')}</span>
-              <span className={`sbadge ${s.ai?'ai':s.name?'human':'open'}`}>
-                {s.ai?'AI Bot':s.name?'Human':'Open'}
-              </span>
-              {isCreator && i>0 && (
-                <button className="toggle" onClick={()=>toggleSlot(i)}>
-                  {s.ai?'→ Human':'→ AI'}
-                </button>
-              )}
-            </div>
-          ))}
+      <div className="setup">
+        <h1 className="title" style={{fontSize:34}}>🐀 TURF WARS</h1>
+        <p style={{marginTop:10, color:"var(--mut)"}}>Last gang standing. Keep your zone clean — or make theirs filthy.</p>
+        <p style={{marginTop:18}}>How many players? (You + AI gangs)</p>
+        <div className="pc">
+          {[4,5,6,7,8].map(n=>
+            <button key={n} onClick={()=>{newGame(n); setNp(n); runTurn();}}>{n}</button>)}
         </div>
-        {isCreator && <div className="mut" style={{fontSize:12}}>Toggle any slot between AI bot and open human seat. Human seats fill when someone joins with the room code.</div>}
-        {isCreator && <button className="startbtn" disabled={!canStart} onClick={()=>socket.emit('start_game',{code:roomCode})}>Start Game</button>}
-        {!isCreator && <div className="mut">Waiting for the host to start the game…</div>}
       </div>
     );
   }
-
-  // ── game guard ──────────────────────────────────────────
-  if(!G || pi===null || !G.players || !G.players[pi]) {
-    return <div style={{padding:20,color:'var(--mut)'}}>Loading game…</div>;
-  }
-
-  // ── game ────────────────────────────────────────────────
-  const me = G.players[pi];
-  const myTurn = G.cur===pi && !G.over && !G.pendingReaction && !G.pendingModal;
-  const awaitingReaction = !!(G.pendingReaction && G.pendingReaction.to===pi);
-  const opps = G.players.filter(p=>p.alive&&p.i!==pi);
-  const touched = G.touchedZones||[];
-
-  function canHI(t){ return t.alive&&t.i!==pi&&t.zone.length>0&&!t.fortify&&!touched.includes(t.i)&&!(G.fusions||[]).some(f=>f.placer===t.i&&f.target===pi); }
-  function canHR(t){ return t.alive&&t.i!==pi&&!t.fortify&&!touched.includes(t.i)&&!(G.fusions||[]).some(f=>f.placer===t.i&&f.target===pi); }
-  function hasFood(){ return (me.hand||[]).some(c=>c.n==='Food'); }
-  function askBoost(card, cb){ if(DEFS[card.n]&&DEFS[card.n].boost&&hasFood()) ask(`${card.n} — boost? (${DEFS[card.n].boost})`,[{label:'Boost (1 Food)',value:true},{label:'No boost',value:false}],cb); else cb(false); }
-  function ratLabel(r,i){ const tags=(r.atts||[]).map(a=>a.card.n).join('+'); return `Rat ${i+1}${tags?` (${tags})`:''}`; }
-  function oppList(filter){ return G.players.filter(p=>p.alive&&p.i!==pi&&(!filter||filter(p))).map(p=>({label:p.name+(p.ai?' 🤖':''),value:p.i,sub:`${p.zone.length} rats · ${p.hp} HP`})); }
-  function getCWTarget(cardName) {
-    const isCCW=cardName.includes('CCW');
-    const dist=cardName.includes('2')?2:cardName.includes('3')?3:1;
-    const d=isCCW?-1:1;
-    let steps=0,i=pi;
-    for(let k=0;k<G.np;k++){i=(i+d+G.np)%G.np;if(G.players[i].alive){steps++;if(steps===dist)break;}}
-    if(i!==pi&&canHR(G.players[i])) return [{dist,target:i,label:`${isCCW?'↺':'↻'} ${dist} seat${dist>1?'s':''} → ${G.players[i].name}`,sub:`${G.players[i].zone.length} rats · ${G.players[i].hp} HP`}];
-    return [];
-  }
-  function getCWOptions(){
-    const opts=[];
-    for(let dist=1;dist<=3;dist++){
-      let steps=0,i=pi;
-      for(let k=0;k<G.np;k++){i=(i+1)%G.np;if(G.players[i].alive){steps++;if(steps===dist)break;}}
-      if(i!==pi&&canHR(G.players[i]))
-        opts.push({label:`${dist} seat${dist>1?'s':''} → ${G.players[i].name}`,value:{dist,target:i},sub:`${G.players[i].zone.length} rats · ${G.players[i].hp} HP`});
-    }
-    return opts;
-  }
-
-  function playable(c){
-    if(!myTurn) return false;
-    const zone=me.zone||[];
-    switch(c.n){
-      case 'Health Inspection': return opps.some(canHI);
-      case 'Hot Ratato 1': case 'Hot Ratato 2': case 'Hot Ratato 3': case 'Hot Ratato CCW 1': case 'Hot Ratato CCW 2': return zone.length>0&&getCWTarget(c.n).length>0;
-      case 'Held Rat': return G.pile>0;
-      case 'Infestation': return G.pile>0||(zone.length>0&&hasFood());
-      case 'Plague': return G.pile>0;
-      case 'Exterminator': case 'Rattatouli': case 'Rat Dividend': return zone.length>0;
-      case 'Kleptomaniac': return zone.length>0&&opps.some(o=>o.handCount>0||(o.hand&&o.hand.length>0));
-      case 'Russian Roulette': return G.pile>0||zone.length>0;
-      case 'Rat Away': return zone.length>0;
-      case 'Rat Territorial': return zone.length>0;
-      case 'Cat': return G.players.some(p=>p.alive&&p.zone.length>0);
-      case 'Food': {
-        const fc=(me.hand||[]).filter(x=>x.n==='Food').length;
-        return fc>=2;
-      }
-      case 'Chilli': case 'Pregnant Rat': return opps.some(o=>o.zone.length>0&&!o.fortify&&!touched.includes(o.i));
-      case 'Block': case 'Ambush': case 'Redirect CW': case 'Redirect CCW': case 'Food': return false;
-      case 'Laundering': return (me.hand||[]).length>1;
-      case 'Shakedown': case 'Stakeout': case 'Mark': case 'Mark 2.0': case 'Inheritance': case 'Surge': case 'Zone Swap': return opps.length>0;
-      default: return true;
-    }
-  }
-
-  function humanPlay(cardId){
-    const c=(me.hand||[]).find(x=>x.id===cardId);
-    if(!c||!playable(c)) return;
-    const zone=me.zone||[];
-    if(c.n==='Health Inspection'){ask('Inspect whom?',oppList(canHI),t=>{const T=G.players[t];const fire=zi=>act({type:'PLAY_HEALTH_INSPECTION',cardId,target:t,ratZi:zi});if(T.zone.some(r=>r.att))ask('Which rat?',T.zone.map((r,i)=>({label:ratLabel(r,i),value:i})),fire);else fire(0);});return;}
-    if(c.n==='Hot Ratato 1'||c.n==='Hot Ratato 2'||c.n==='Hot Ratato 3'||c.n==='Hot Ratato CCW 1'||c.n==='Hot Ratato CCW 2'){
-      const tgts=getCWTarget(c.n);
-      if(!tgts.length)return;
-      const {dist,target}=tgts[0];
-      const canBoost=DEFS[c.n]&&DEFS[c.n].boost&&hasFood()&&zone.length>=2;
-      const fire=(boost,zi)=>act({type:'PLAY_HOT_RATATO',cardId,target,dist,ratZi:zi,boost});
-      const doFire=boost=>{
-        if(zone.some(r=>r.atts&&r.atts.length))ask('Which rat?',zone.map((r,i)=>({label:ratLabel(r,i),value:i})),zi=>fire(boost,zi));
-        else fire(boost,0);
-      };
-      if(canBoost) ask(`${c.n} — boost? Send 2 rats (${dist} seat${dist>1?'s':''})`,[{label:'Boost (1 Food)',value:true},{label:'No boost',value:false}],boost=>doFire(boost));
-      else doFire(false);
-      return;
-    }
-    if(c.n==='Held Rat'){ask('Place rat into whose zone?',G.players.filter(p=>p.alive).map(p=>({label:p.name+(p.i===pi?' (you)':''),value:p.i,sub:`${p.zone.length} rats`})),t=>act({type:'PLAY_HELD_RAT',cardId,target:t}));return;}
-    if(c.n==='Infestation'){askBoost(c,boost=>act({type:'PLAY_INFESTATION',cardId,boost}));return;}
-    if(c.n==='Plague'){ask('How many rats?',Array.from({length:Math.min(3,G.pile)},(_,i)=>({label:String(i+1),value:i+1})),count=>act({type:'PLAY_PLAGUE',cardId,count}));return;}
-    if(c.n==='Setup'){askBoost(c,boost=>act({type:'PLAY_SETUP',cardId,boost}));return;}
-    if(c.n==='Fortify'){act({type:'PLAY_FORTIFY',cardId});return;}
-    if(c.n==='Exterminator'){askBoost(c,boost=>ask('Remove which rat?',zone.map((r,i)=>({label:ratLabel(r,i),value:i})),zi=>act({type:'PLAY_EXTERMINATOR',cardId,ratZi:zi,boost})));return;}
-    if(c.n==='Mark'){ask('Mark whom?',oppList(),t=>act({type:'PLAY_MARK',cardId,target:t}));return;}
-    if(c.n==='Mark 2.0'){ask('Mark 2.0 — whom?',oppList(),t=>act({type:'PLAY_MARK2',cardId,target:t}));return;}
-    if(c.n==='Stakeout'){
-      askBoost(c,boost=>{
-        ask('Shakedown 2.0 — whom?',oppList(p=>p.handCount>0||(p.hand&&p.hand.length>0)),t=>{
-          const cardOpts=[{label:'Hot Ratato (any)',value:'Hot Ratato',sub:'Matches all HR variants'},...Object.keys(DEFS).filter(n=>n!=='Rat'&&!n.startsWith('WD:')&&!n.startsWith('Hot Ratato')).map(n=>({label:n,value:n}))];
-          ask('Name the card you demand:',cardOpts,cardName=>act({type:'PLAY_STAKEOUT',cardId,target:t,cardName,boost}));
-        });
-      });return;
-    }
-    if(c.n==='Shakedown'){askBoost(c,boost=>ask('Shake down whom?',oppList(p=>p.handCount>0||(p.hand&&p.hand.length>0)),t=>{
-      const cardOpts=[{label:'Hot Ratato (any)',value:'Hot Ratato',sub:'Matches Hot Ratato 1, 2, 3, CCW'},...Object.keys(DEFS).filter(n=>n!=='Rat'&&!n.startsWith('WD:')&&!n.startsWith('Hot Ratato')).map(n=>({label:n,value:n}))];
-      ask('Name the card you demand:',cardOpts,cardName=>act({type:'PLAY_SHAKEDOWN',cardId,target:t,cardName,boost}));
-    }));return;}
-    if(c.n==='Inheritance'){askBoost(c,boost=>ask('Inheritance — whom?',oppList(),t=>act({type:'PLAY_INHERITANCE',cardId,target:t,boost})));return;}
-    if(c.n==='Laundering'){const max=Math.min(3,(me.hand||[]).length-1);ask(`Discard how many? (max ${max})`,Array.from({length:max},(_,i)=>({label:String(i+1),value:i+1})),n=>{const pickable=(me.hand||[]).filter(x=>x.id!==cardId);const picked=[];const step=k=>{if(k>=n){act({type:'PLAY_LAUNDERING',cardId,cardIds:picked});return;}ask(`Discard ${k+1}/${n}:`,pickable.filter(x=>!picked.includes(x.id)).map(x=>({label:x.n,value:x.id})),id=>{picked.push(id);step(k+1);});};step(0);});return;}
-    if(c.n==='Zone Swap'){ask('Swap zones with whom?',oppList(),t=>act({type:'PLAY_ZONE_SWAP',cardId,target:t}));return;}
-    if(c.n==='Surge'){ask('Surge:',[{label:'Draw 2 yourself',value:'self'},{label:'Force another to draw 1',value:'force'}],v=>{if(v==='self')act({type:'PLAY_SURGE',cardId,target:pi});else ask('Force whom?',oppList(),t=>act({type:'PLAY_SURGE',cardId,target:t}));});return;}
-    if(c.n==='Russian Roulette'){askBoost(c,boost=>act({type:'PLAY_RUSSIAN_ROULETTE',cardId,boost}));return;}
-    if(c.n==='Chilli'){ask("Attach Chilli to whose rat?",oppList(o=>o.zone.length>0&&!o.fortify&&!touched.includes(o.i)),t=>ask('Which rat?',G.players[t].zone.map((r,i)=>({label:ratLabel(r,i),value:i})),zi=>act({type:'PLAY_CHILLI',cardId,target:t,ratZi:zi})));return;}
-    if(c.n==='Rattatouli'){ask('Convert which rat?',zone.map((r,i)=>({label:ratLabel(r,i),value:i})),zi=>act({type:'PLAY_RATTATOULI',cardId,ratZi:zi}));return;}
-    if(c.n==='Rat Dividend'){act({type:'PLAY_RAT_DIVIDEND',cardId});return;}
-    if(c.n==='Pregnant Rat'){ask("Attach to whose rat?",oppList(o=>o.zone.length>0&&!o.fortify&&!touched.includes(o.i)),t=>ask('Which rat?',G.players[t].zone.map((r,i)=>({label:ratLabel(r,i),value:i})),zi=>act({type:'PLAY_PREGNANT_RAT',cardId,target:t,ratZi:zi})));return;}
-    if(c.n==='Rat Away'){act({type:'PLAY_RAT_AWAY',cardId});return;}
-    if(c.n==='Kleptomaniac'){askBoost(c,boost=>act({type:'PLAY_KLEPTOMANIAC',cardId,boost}));return;}
-    if(c.n==='Rat Territorial'){ask('Attach to which of your rats?',zone.map((r,i)=>({label:ratLabel(r,i),value:i})),zi=>act({type:'PLAY_RAT_TERRITORIAL',cardId,ratZi:zi}));return;}
-    if(c.n==='Cat'){
-      askBoost(c,boost=>{
-        const targets=G.players.filter(p=>p.alive&&p.zone.length>0).map(p=>({label:p.name+(p.i===pi?' (you)':''),value:p.i,sub:`${p.zone.length} rats`}));
-        ask('Attach Cat to which rat?',targets,t=>ask('Which rat?',G.players[t].zone.map((r,i)=>({label:ratLabel(r,i),value:i})),zi=>act({type:'PLAY_CAT',cardId,target:t,ratZi:zi,boost})));
-      });return;
-    }
-    if(c.n==='Food'){
-      const fc=(me.hand||[]).filter(x=>x.n==='Food').length;
-      const opts=[];
-      if(zone.length>0) opts.push({label:'Spend 2 Food — bribe a rat into the deck',value:'f2',sub:'Rat shuffled into deck randomly'});
-      if(fc>=3) opts.push({label:'Spend 3 Food — force all others to discard 1, keep up to 3',value:'f3'});
-      if(!opts.length) return;
-      if(opts.length===1){
-        if(opts[0].value==='f2') act({type:'PLAY_FOOD_2',cardId}); else act({type:'PLAY_FOOD_3',cardId}); return;
-      }
-      ask('Food combo:',opts,v=>{
-        if(v==='f2') act({type:'PLAY_FOOD_2',cardId});
-        else act({type:'PLAY_FOOD_3',cardId});
-      });return;
-    }
-    if(c.n==='Scout'){askBoost(c,boost=>act({type:'PLAY_SCOUT',cardId,boost}));return;}
-  }
-
-  function renderReaction(){
-    if(!awaitingReaction||!G.pendingReaction) return null;
-    const pr=G.pendingReaction; const attacker=G.players[pr.from];
-    const items=[{label:'Take the hit',value:'none',sub:'No reaction'}];
-    if((me.hand||[]).some(c=>c.n==='Block')){items.push({label:'Block',value:'block',sub:'Cancel the attack'});if(hasFood())items.push({label:'Block + boost',value:'blockboost',sub:'Redirect to another player'});}
-    if(pr.kind==='KLEPTO'){ /* block only */ }
-    if(pr.kind==='HR'&&(me.hand||[]).some(c=>c.n==='Redirect CW')) items.push({label:'Redirect CW',value:'cw',sub:'Rat passes clockwise'});
-    if(pr.kind==='HR'&&(me.hand||[]).some(c=>c.n==='Redirect CCW')) items.push({label:'Redirect CCW',value:'ccw',sub:'Rat passes anticlockwise'});
-    if(pr.kind==='HR'&&(me.hand||[]).some(c=>c.n==='Ambush')) items.push({label:'Ambush',value:'ambush',sub:'Cancel and steal the card'});
-    const doReact=v=>{
-      if(v==='none') react({type:'REACT_NONE'});
-      else if(v==='block') react({type:'REACT_BLOCK'});
-      else if(v==='blockboost') ask('Redirect to whom?',oppList(p=>p.i!==pr.from&&p.alive),t=>react({type:'REACT_BLOCK_BOOST',redirectTo:t}));
-      else if(v==='cw') react({type:'REACT_REDIRECT_CW'});
-      else if(v==='ccw') react({type:'REACT_REDIRECT_CCW'});
-      else if(v==='ambush') react({type:'REACT_AMBUSH'});
-    };
-    return (<div className="overlay"><div className="modal">
-      <h4>⚡ {attacker.name} attacks you ({pr.kind==='HI'?'Health Inspection':pr.kind==='HR'?'Hot Ratato':pr.kind==='KLEPTO'?'Kleptomaniac':'Attack'})!</h4>
-      <div className="opts">{items.map((it,i)=><button key={i} onClick={()=>doReact(it.value)}>{it.label}<span className="sub">{it.sub}</span></button>)}</div>
-    </div></div>);
-  }
-
+  const me=G.players[0];
+  const myTurn=G.cur===0&&!G.over&&!G.busy;
   return (
     <div>
-      {notif&&<div className="notif">{notif}<button style={{float:'right',padding:'2px 8px'}} onClick={()=>setNotif(null)}>×</button></div>}
       <div className="top">
-        <span className="title" style={{fontSize:18}}>🐀 TURF WARS</span>
-        <span className="stat">Room <b style={{fontFamily:'monospace',letterSpacing:2}}>{roomCode}</b></span>
-        <span className="stat">Round <b>{G.round}</b></span>
-        <span className="stat">Deck <b>{G.deckCount}</b></span>
-        <span className="stat">Pile <b>{G.pile}</b></span>
-        <span className="stat">Turn: <b>{G.over?`${G.players[G.winner].name} wins!`:G.players[G.cur].name+(G.players[G.cur].ai?' 🤖':'')}</b></span>
+        <span className="title" style={{fontSize:20}}>🐀 TURF WARS</span>
+        <span className="stat">Round <b className="mono">{G.round}</b></span>
+        <span className="stat">Deck <b className="mono">{G.deck.length}</b></span>
+        <span className="stat">Rat pile <b className="mono">{G.pile}</b></span>
+        <span className="stat">Discard <b className="mono">{G.discard.length}</b></span>
+        <span className="stat">Turn: <b>{G.over?`Game over — ${G.players[G.winner].name} win${G.winner===0?"":"s"}`:G.players[G.cur].name}</b></span>
         <span style={{flex:1}}/>
-        {myTurn&&<button className="endbtn" onClick={()=>act({type:'END_TURN'})}>End turn</button>}
-        {awaitingReaction&&<span style={{color:'var(--amber)',fontWeight:700}}>⚡ React!</span>}
-        {!myTurn&&!awaitingReaction&&!G.over&&<span style={{color:'var(--mut)',fontSize:13}}>{G.players[G.cur].name}'s turn…</span>}
+        <button onClick={()=>setShowRef(s=>!s)}>Card reference</button>
+        <button onClick={()=>{setNp(null); REF.modal=null;}}>New game</button>
       </div>
-      <div className="grid">
-        {G.players.map(p=>{
-          const tags=[];
-          if(p.fortify) tags.push(<span key="f" className="tag">Fortified</span>);
-          if(G.mark&&G.mark.target===p.i) tags.push(<span key="m" className="tag warn">Marked</span>);
-          if(G.mark2&&G.mark2.target===p.i) tags.push(<span key="m2" className="tag warn">Mark 2.0</span>);
-          if((G.bounties||[]).some(b=>b.target===p.i)) tags.push(<span key="b" className="tag warn">Inheritance</span>);
-          if((G.fusions||[]).some(f=>f.placer===p.i)) tags.push(<span key="kf" className="tag">Fused</span>);
-          const cls=['pp',G.cur===p.i&&!G.over?'cur':'',p.i===pi?'isme':'',p.alive?'':'dead'].filter(Boolean).join(' ');
-          return (
-            <div key={p.i} className={cls}>
-              <h3>
-                <span>{p.ai?'🤖 ':''}{p.name}{p.i===pi?' (you)':''}{tags}</span>
-                <span className="hp">{p.alive?'♥'.repeat(p.hp):'☠'}</span>
-              </h3>
-              <div className="zone">
-                {p.zone.length===0&&<span className="meta">zone clear</span>}
-                {p.zone.map((r,idx)=>{const atts=(r.atts||[]).concat(r.att?[r.att]:[]);return(<div key={r.id||idx} className={'rat'+(atts.length?' ratt':'')} style={{display:'flex',flexDirection:'column',gap:2,padding:'3px 6px'}}><span>🐀 Rat {idx+1}</span>{atts.map((a,j)=><span key={j} className="att" style={{fontSize:10}}>↳ {a.card&&a.card.n}{a.charges&&a.charges>1?` (${a.charges}×)`:''}</span>)}</div>);})}
-              </div>
-              <div className="meta">{p.i===pi?`${(me.hand||[]).length} cards`:`${p.handCount} cards`}</div>
-            </div>
-          );
-        })}
-      </div>
+      {showRef && <div className="handbox" style={{marginBottom:12}}><div className="ref">
+        {Object.entries(DEFS).map(([n,d])=><div key={n} style={{marginBottom:4}}><b>{n}</b> — {d.ds}{d.boost?<i> Boost: {d.boost}</i>:null}</div>)}
+      </div></div>}
+      <div className="grid">{G.players.map(p=><PlayerPanel key={p.i} p={p}/>)}</div>
       <div className="main">
         <div className="handbox">
-          <b>Your hand</b>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <b>Your hand {myTurn?"— your turn":""}</b>
+            <button className="endbtn" disabled={!myTurn||!!REF.modal} onClick={humanEndTurn}>End turn</button>
+          </div>
           <div className="hand">
-            {(me.hand||[]).map(c=>(
-              <div key={c.id} className={`card cat-${(DEFS[c.n]&&DEFS[c.n].cat)||'engine'}`}>
-                <div className="ct">{DEFS[c.n]&&DEFS[c.n].cat}</div>
+            {me.hand.map(c=>
+              <div key={c.id} className={`card cat-${DEFS[c.n].cat}`}>
+                <div className="ct">{DEFS[c.n].cat}</div>
                 <div className="nm">{c.n}</div>
-                <div className="ds">{DEFS[c.n]&&DEFS[c.n].ds}</div>
-                {DEFS[c.n]&&DEFS[c.n].boost&&<div className="ds" style={{opacity:.65,borderTop:'1px solid rgba(255,255,255,.15)',marginTop:2,paddingTop:2}}>⚡ {DEFS[c.n].boost}</div>}
-                <button disabled={!playable(c)} onClick={()=>humanPlay(c.id)}>
-                  {['Block','Ambush','Redirect CW','Redirect CCW'].includes(c.n)?'Reactive':c.n==='Food'?'Resource':'Play'}
+                <div className="ds">{DEFS[c.n].ds}</div>
+                <button disabled={!myTurn||!playable(c)} onClick={()=>humanPlay(c.id)}>
+                  {["Block","Ambush","Redirect CW","Redirect CCW"].includes(c.n)?"Reactive":"Play"}
                 </button>
-              </div>
-            ))}
-            {!(me.hand||[]).length&&<span className="meta">No cards.</span>}
+              </div>)}
+            {me.hand.length===0 && <span className="meta">No cards — end your turn to draw.</span>}
           </div>
         </div>
         <div className="logbox">
           <b style={{marginBottom:8}}>Street talk</b>
-          <div className="log">
-            {(G.log||[]).map((e,i)=><div key={i} className={e.cls||''}>{e.msg}</div>)}
-          </div>
+          <div className="log">{G.log.map(e=><div key={e.t} className={e.cls}>{e.msg}</div>)}</div>
         </div>
       </div>
-      {stakeout&&(<div className="overlay"><div className="modal">
-        <h4>Stakeout — {G.players[stakeout.target].name}'s hand</h4>
-        <div style={{display:'flex',flexWrap:'wrap',gap:8,margin:'10px 0'}}>
-          {(stakeout.hand||[]).map(c=><div key={c.id} className={`card cat-${(DEFS[c.n]&&DEFS[c.n].cat)||'engine'}`} style={{width:120}}><div className="nm">{c.n}</div></div>)}
-        </div>
-        <button onClick={()=>setStakeout(null)}>Done</button>
-      </div></div>)}
-
-      {G.pendingModal&&G.pendingModal.pi===pi&&(G.pendingModal.kind==='SETUP'||G.pendingModal.kind==='SCOUT')&&
-        <PeekModal pm={G.pendingModal} peekSel={peekSel} setPeekSel={setPeekSel} act={act} DEFS={DEFS}/>}
-      {modal&&!awaitingReaction&&(<div className="overlay"><div className="modal">
-        <h4>{modal.prompt}</h4>
-        <div className="opts">
-          {modal.items.map((it,i)=><button key={i} onClick={()=>answer(it.value)}>{it.label}{it.sub&&<span className="sub">{it.sub}</span>}</button>)}
-          {modal.cancellable!==false&&<button style={{marginTop:6,opacity:.6}} onClick={()=>setModal(null)}>✕ Cancel</button>}
-        </div>
-      </div></div>)}
-      {renderReaction()}
-    <div className="tutorial">
-      <h3>🐀 HOW TO PLAY</h3>
-      <h4>Goal</h4>
-      <p>Be the last gang standing. Eliminate all other players by reducing their HP to 0.</p>
-      <h4>Turn order</h4>
-      <ul>
-        <li>Draw 1 card at the start of your turn</li>
-        <li>Play any cards from your hand</li>
-        <li>Click <b>End Turn</b></li>
-      </ul>
-      <h4>Rats &amp; your zone</h4>
-      <p>When you draw a Rat card it goes straight into your zone — not your hand. Rats in your zone make you a target. If 5 rats are ever in your zone at once — <b>instant death</b>.</p>
-      <h4>How you take damage</h4>
-      <p>When an opponent plays <b>Health Inspection</b> targeting you: one rat leaves your zone to the pile, and you lose 1 HP. No rats = can't be inspected. At 0 HP you're eliminated.</p>
-      <h4>Moving rats</h4>
-      <p><b>Hot Ratato</b> sends a rat from your zone into another player's zone (1–3 seats clockwise or anticlockwise). The goal: load up opponents' zones, then inspect them.</p>
-      <h4>Key cards</h4>
-      <ul>
-        <li><b>Block</b> — cancel any attack aimed at you (reactive, play on opponent's turn)</li>
-        <li><b>Exterminator</b> — remove a rat from your zone back to the pile</li>
-        <li><b>Fortify</b> — your zone is immune to all attacks until your next turn</li>
-        <li><b>Food</b> — spend 1 to boost a card · spend 2 to bribe a rat into the deck · spend 3 to force all others to discard 1</li>
-      </ul>
-      <h4>Zone rule</h4>
-      <p>Each player's zone can only be interacted with once per turn across all cards.</p>
-      <h4>Buffs &amp; nerfs on rats</h4>
-      <p>Cards like Chilli, Cat, and Pregnant Rat attach to specific rats. Multiple can stack. They travel with the rat and are discarded when the rat returns to the pile.</p>
-      <h4>Reactive cards</h4>
-      <p>Block, Ambush, and Redirect cards are played during other players' turns in response to attacks — no need to wait for your turn.</p>
-    </div>
+      {REF.modal &&
+        <div className="overlay"><div className="modal">
+          <h4>{REF.modal.prompt}</h4>
+          <div className="opts">
+            {REF.modal.items.map((it,i)=>
+              <button key={i} onClick={()=>answer(it.value)}>{it.label}{it.sub&&<span className="sub">{it.sub}</span>}</button>)}
+          </div>
+        </div></div>}
     </div>
   );
 }
-ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+
 </script>
 </body>
 </html>
