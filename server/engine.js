@@ -3,8 +3,8 @@
 
 const DECK_TABLE = {
   // SCALING
-  "Rat":[9,11,13,15,17],
-  "Health Inspection":[8,11,14,17,20],
+  "Rat":[10,13,15,17,20],
+  "Health Inspection":[8,9,10,10,11],
   // FIXED at 8P quantities
   "Hot Ratato 1":[6,6,6,6,6],
   "Hot Ratato 2":[5,5,5,5,5],
@@ -13,22 +13,20 @@ const DECK_TABLE = {
   "Hot Ratato CCW 2":[1,1,1,1,1],
   "Block":[8,8,8,8,8],
   "Food":[12,12,12,12,12],
-  "Held Rat":[2,2,2,2,2],
+  "Special Delivery":[4,4,4,4,4],
   "Infestation":[4,4,4,4,4],
-  "Plague":[1,1,1,1,1],
   "Setup":[4,4,4,4,4],
   "Fortify":[5,5,5,5,5],
-  "Exterminator":[5,5,5,5,5],
+  "Exterminator":[3,3,3,3,3],
   "Mark":[2,2,2,2,2],
   "Mark 2.0":[1,1,1,1,1],
   "Ambush":[2,2,2,2,2],
   "Stakeout":[4,4,4,4,4],
-  "Shakedown":[6,6,6,6,6],
-  "Inheritance":[4,4,4,4,4],
-  "Laundering":[1,1,1,1,1],
+  "Shakedown":[4,4,4,4,4],
+  "Inheritance":[2,2,2,2,2],
   "Russian Roulette":[1,1,1,1,1],
   "Chilli":[4,4,4,4,4],
-  "Rattatouli":[4,4,4,4,4],
+  "Rattatouli":[2,2,2,2,2],
   "Rat Dividend":[2,2,2,2,2],
   "Pregnant Rat":[1,1,1,1,1],
   "Redirect CW":[1,1,1,1,1],
@@ -38,15 +36,16 @@ const DECK_TABLE = {
   "Rat Away":[4,4,4,4,4],
   "Rat Territorial":[4,4,4,4,4],
   "Cat":[6,6,6,6,6],
-  "Kleptomaniac":[6,6,6,6,6],
+  "Kleptomaniac":[4,4,4,4,4],
   "Surge":[3,3,3,3,3],
+  "Trash Diver":[1,1,1,1,1],
   "WD: Frenzy":[2,2,2,2,2],
   "WD: Blackout":[1,1,1,1,1],
   "WD: Rat Run CW":[1,1,1,1,1],
   "WD: Rat Run CCW":[1,1,1,1,1],
   "WD: Audit":[1,1,1,1,1],
-  "WD: Curfew":[1,1,1,1,1],
-  "WD: Health Inspection":[2,2,2,2,2],
+
+  "WD: Health Inspection":[4,4,4,4,4],
 };
 
 let _id = 0;
@@ -73,7 +72,7 @@ function newGame(np, playerNames) {
     hand: [], zone: [], fortify: false,
   }));
   for(const pl of players)
-    for(let k=0;k<7;k++) pl.hand.push(dealPool.pop());
+    for(let k=0;k<6;k++) pl.hand.push(dealPool.pop());
   return {
     np, players,
     deck: sh(dealPool.concat(excluded)),
