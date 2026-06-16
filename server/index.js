@@ -129,13 +129,6 @@ function resolveWD(G, name, pi, room) {
     for(const p of alive.filter(p => p.hand.length === mx && p.hand.length)) {
       sh(p.hand); G.discard.push(p.hand.pop());
     }
-  } else if(name === 'WD: Curfew') {
-    const mx = Math.max(...alive.map(p => p.zone.length));
-    const tops = alive.filter(p => p.zone.length === mx);
-    if(tops.length === 1 && tops[0].zone.length) {
-      const o = tops[0]; const opps = alive.filter(p => p.i !== o.i);
-      if(opps.length) { const tgt = opps.sort((a,b) => b.zone.length-a.zone.length)[0]; tgt.zone.push(o.zone.splice(0,1)[0]); checkRatDeath(G,tgt.i,room); }
-    }
   } else if(name === 'WD: Health Inspection') {
     const pl = G.players[pi];
     if(pl.zone.length > 0) {
@@ -159,6 +152,7 @@ function damage(G, pi, src, room) {
 }
 function eliminate(G, pi, room) {
   const pl = G.players[pi]; pl.alive = false;
+  const deadHand = [...pl.hand];
   while(pl.zone.length) { G.pile++; pl.zone.pop(); }
   G.discard.push(...pl.hand); pl.hand = [];
   G.fusions = G.fusions.filter(f => f.placer!==pi && f.target!==pi);
@@ -166,6 +160,26 @@ function eliminate(G, pi, room) {
   if(G.mark  && (G.mark.placer===pi||G.mark.target===pi))   G.mark  = null;
   if(G.mark2 && (G.mark2.placer===pi||G.mark2.target===pi)) G.mark2 = null;
   log(room, `☠ ${pl.name} is ELIMINATED.`, 'dmg');
+  // Inheritance payouts — anyone who backed this player collects random cards
+  if(G.bounties) {
+    const paying = G.bounties.filter(b => b.target === pi);
+    G.bounties = G.bounties.filter(b => b.target !== pi && b.placer !== pi);
+    // shuffle dead hand
+    const pool = deadHand.filter(c => c.n !== 'Rat' && !isWD(c.n));
+    for(let i=pool.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]];}
+    for(const b of paying) {
+      const collector = G.players[b.placer];
+      if(!collector || !collector.alive) continue;
+      const take = Math.min(b.keep, pool.length);
+      if(take === 0) { log(room, `${collector.name} Inheritance fires but no cards to collect.`, 'sys'); continue; }
+      const picked = pool.splice(0, take);
+      // remove picked from discard (they were pushed there above)
+      for(const c of picked) { const di=G.discard.findIndex(x=>x.id===c.id); if(di!==-1) G.discard.splice(di,1); }
+      collector.hand.push(...picked);
+      log(room, `${collector.name} collects ${take} card(s) from ${pl.name} via Inheritance.`, 'sys');
+    }
+    // any remaining pool stays in discard
+  }
   const alive = G.players.filter(p => p.alive);
   if(alive.length === 1) { G.over = true; G.winner = alive[0].i; log(room, `🏆 ${alive[0].name} wins!`, 'me'); }
 }
@@ -199,7 +213,7 @@ function startTriggers(G, pi, room) {
     if(count) log(room, `${pl.name}'s Rat Away clears their zone (${count} rat${count>1?'s':''} to pile).`, 'sys');
   }
   const preg = pl.zone.filter(r => r.atts && r.atts.some(a=>a.card.n==='Pregnant Rat'));
-  for(const r of preg) { r.atts=r.atts.filter(a=>a.card.n!=='Pregnant Rat'); addRat(G, pi, room); }
+  for(const r of preg) { const pa=r.atts.find(a=>a.card.n==='Pregnant Rat'); r.atts=r.atts.filter(a=>a.card.n!=='Pregnant Rat'); if(pa&&pa.mode==='buff'&&pa.adoptTarget!=null){addRat(G,pa.adoptTarget,room);log(room,`Pregnant Rat births — newborn delivered to ${G.players[pa.adoptTarget].name}.`,'sys');}else{addRat(G,pi,room);} }
 }
 function endTriggers(G, pi, room) {
   const det = [], remaining = [];
@@ -234,20 +248,30 @@ function getCWTarget(G, pi, dist, ccw=false) {
 }
 function resolveHI(G, atk, tgtI, ratZi, room) {
   const T=G.players[tgtI]; if(!T.zone.length){log(room,'Inspection fizzles.','sys');return;}
-  let zi=Math.min(ratZi,T.zone.length-1);
-  // Cat protection
-  const rat=T.zone[zi];
-  if(rat && rat.atts) {
-    const catIdx=rat.atts.findIndex(a=>a.card.n==='Cat');
-    if(catIdx>=0) {
-      const cat=rat.atts[catIdx]; cat.charges--;
-      if(cat.charges<=0){ G.discard.push(cat.card); rat.atts.splice(catIdx,1); }
-      log(room,`😺 Cat blocks the inspection on ${T.name}'s rat!${cat.charges>0?` (${cat.charges} charge${cat.charges>1?'s':''} left)`:' (Cat used up)'}`, 'sys');
-      return;
+  // NEW: detonate ALL rats in target zone — Cat blocks individual rats
+  let hitsBlocked=0, hitsLanded=0;
+  // iterate backwards so splice doesn't shift indices
+  for(let zi=T.zone.length-1; zi>=0; zi--) {
+    const rat=T.zone[zi];
+    let catBlocked=false;
+    if(rat && rat.atts) {
+      const catIdx=rat.atts.findIndex(a=>a.card.n==='Cat');
+      if(catIdx>=0) {
+        const cat=rat.atts[catIdx]; cat.charges--;
+        if(cat.charges<=0){ G.discard.push(cat.card); rat.atts.splice(catIdx,1); }
+        log(room,`😺 Cat blocks the inspection on one of ${T.name}'s rats!`, 'sys');
+        catBlocked=true; hitsBlocked++;
+      }
+    }
+    if(!catBlocked) {
+      ratToPile(G,tgtI,zi); hitsLanded++;
     }
   }
-  ratToPile(G,tgtI,zi);
-  log(room,`Inspection hits — rat fired from ${T.name}.`); damage(G,tgtI,'Health Inspection',room);
+  if(hitsLanded>0) {
+    log(room,`🔍 Health Inspection detonates ${hitsLanded} rat(s) in ${T.name}'s zone! (-${hitsLanded} HP)`, 'dmg');
+    for(let k=0;k<hitsLanded;k++) damage(G,tgtI,'Health Inspection',room);
+  }
+  if(hitsBlocked>0) log(room,`${hitsBlocked} rat(s) protected by Cat.`,'sys');
 }
 function resolveHR(G, atk, tgtI, ratZi, boost, room) {
   const A=G.players[atk],T=G.players[tgtI]; const count=boost?2:1;
@@ -344,8 +368,6 @@ function runAITurn(G, pi, room) {
     if(has('Mark')&&!G.mark){const ts=opps().filter(t=>t.zone.length);if(ts.length){use('Mark');G.mark={placer:pi,target:max_by(ts,x=>x.zone.length).i};log(room,`${pl.name} plays Mark.`);continue;}}
     // Surge
     if(has('Surge')&&Math.random()<0.6){use('Surge');drawOne(G,pi,room);drawOne(G,pi,room);log(room,`${pl.name} Surges.`);continue;}
-    // Plague
-    if(has('Plague')&&G.pile>=2&&Math.random()<0.5){use('Plague');const n=Math.min(3,G.pile);for(let k=0;k<n;k++){G.pile--;G.deck.push(mk('Rat'));}log(room,`${pl.name} plays Plague.`);continue;}
     break;
   }
 }
@@ -413,9 +435,8 @@ function handleAction(roomCode, pi, action) {
     if(tgt.hand.some(c=>['Block','Redirect CW','Redirect CCW'].includes(c.n))){G.pendingReaction={kind:'HR',from:pi,to:cwIdx,ratZi:ratIdx,boost:!!boost};return broadcast(roomCode);}
     resolveHR(G,pi,cwIdx,ratIdx,boost,room); broadcast(roomCode);
   }
-  if(type==='PLAY_HELD_RAT'){if(G.pile<=0)return;spend(cardId);zoneRat(G,target,room);if(target!==pi)G.touchedZones.push(target);log(room,`${pl.name} drops Held Rat into ${G.players[target].name}'s zone.`);broadcast(roomCode);}
-  if(type==='PLAY_INFESTATION'){spend(cardId);if(boost&&pl.zone.length){spendFood();ratToPile(G,pi,pl.zone.length-1);G.deck.push(mk('Rat'));}else if(G.pile>0){G.pile--;G.deck.push(mk('Rat'));}log(room,`${pl.name} plays Infestation.`);broadcast(roomCode);}
-  if(type==='PLAY_PLAGUE'){spend(cardId);const n=Math.min(count||1,G.pile);for(let k=0;k<n;k++){G.pile--;G.deck.push(mk('Rat'));}log(room,`${pl.name} plays Plague (${n}).`);broadcast(roomCode);}
+  if(type==='PLAY_SPECIAL_DELIVERY'){if(G.pile<=0)return;spend(cardId);zoneRat(G,target,room);if(target!==pi)G.touchedZones.push(target);log(room,`${pl.name} Special Delivery into ${G.players[target].name}'s zone.`);broadcast(roomCode);}
+  if(type==='PLAY_INFESTATION'){spend(cardId);if(boost&&pl.zone.length){spendFood();ratToPile(G,pi,pl.zone.length-1);for(let k=0;k<3;k++)G.deck.push(mk('Rat'));}else if(G.pile>0){G.pile--;G.deck.push(mk('Rat'));}log(room,`${pl.name} plays Infestation${boost?' (boost)':''}.`);broadcast(roomCode);}
   if(type==='PLAY_SETUP') {
     spend(cardId); if(boost) spendFood();
     reshuffle(G);
@@ -441,7 +462,9 @@ function handleAction(roomCode, pi, action) {
     broadcast(roomCode); return;
   }
   if(type==='PLAY_CHILLI'){const tgt=G.players[target];if(!tgt||!tgt.zone.length||tgt.fortify)return;const card=pl.hand.find(c=>c.id===cardId);if(!card)return;pl.hand.splice(pl.hand.indexOf(card),1);G.touchedZones.push(target);if(tgt.hand.some(c=>c.n==='Block')){G.pendingReaction={kind:'CHILLI',from:pi,to:target,ratZi:ratZi||0,chilli:card};return broadcast(roomCode);}attachChilli(G,pi,target,ratZi||0,card,room);broadcast(roomCode);}
-  if(type==='PLAY_PREGNANT_RAT'){const tgt=G.players[target];if(!tgt||!tgt.zone.length||tgt.fortify)return;const card=pl.hand.find(c=>c.id===cardId);if(!card)return;pl.hand.splice(pl.hand.indexOf(card),1);if(!tgt.zone[ratZi||0].atts)tgt.zone[ratZi||0].atts=[];tgt.zone[ratZi||0].atts.push({card,placer:pi,type:'pregnant'});G.touchedZones.push(target);log(room,`${pl.name} Pregnant Rat on ${tgt.name}.`);broadcast(roomCode);}
+  if(type==='PLAY_PREGNANT_RAT'){const card=pl.hand.find(c=>c.id===cardId);if(!card)return;const tgt=G.players[target];if(!tgt||!tgt.zone.length)return;if(mode==='buff'){// buff: attach to own rat, newborn goes to adoptTarget's zone
+    pl.hand.splice(pl.hand.indexOf(card),1);if(!pl.zone[ratZi||0].atts)pl.zone[ratZi||0].atts=[];pl.zone[ratZi||0].atts.push({card,placer:pi,type:'pregnant',mode:'buff',adoptTarget});log(room,`${pl.name} Pregnant Rat (buff) — newborn will go to ${G.players[adoptTarget].name}.`);broadcast(roomCode);}else{// nerf: attach to opponent's rat
+    if(tgt.fortify)return;pl.hand.splice(pl.hand.indexOf(card),1);if(!tgt.zone[ratZi||0].atts)tgt.zone[ratZi||0].atts=[];tgt.zone[ratZi||0].atts.push({card,placer:pi,type:'pregnant',mode:'nerf'});G.touchedZones.push(target);log(room,`${pl.name} Pregnant Rat (nerf) on ${tgt.name}.`);broadcast(roomCode);}}
   if(type==='PLAY_RAT_AWAY') {
     spend(cardId);
     G.ratAway=(G.ratAway||[]); G.ratAway.push(pi);
@@ -450,7 +473,6 @@ function handleAction(roomCode, pi, action) {
   }
   if(type==='PLAY_RATTATOULI'){if(!pl.zone.length)return;spend(cardId);ratToPile(G,pi,ratZi||0);pl.hand.push(mk('Food'));log(room,`${pl.name} Rattatouli.`);broadcast(roomCode);}
   if(type==='PLAY_RAT_DIVIDEND'){if(!pl.zone.length)return;spend(cardId);const n=pl.zone.length;for(let k=0;k<n;k++)drawOne(G,pi,room);log(room,`${pl.name} Rat Dividend (${n}).`);broadcast(roomCode);}
-  if(type==='PLAY_LAUNDERING'){spend(cardId);const n=(cardIds||[]).length;for(const cid of (cardIds||[])){const i=pl.hand.findIndex(c=>c.id===cid);if(i>=0)G.discard.push(pl.hand.splice(i,1)[0]);}for(let k=0;k<n;k++)drawOne(G,pi,room);log(room,`${pl.name} Laundering (${n}).`);broadcast(roomCode);}
   if(type==='PLAY_FOOD_2') {
     if(!pl.zone.length) return;
     const fi1=pl.hand.findIndex(c=>c.n==='Food'); if(fi1<0) return;
@@ -487,6 +509,17 @@ function handleAction(roomCode, pi, action) {
     broadcast(roomCode); return;
   }
   if(type==='PLAY_SURGE'){spend(cardId);if(target===pi){drawOne(G,pi,room);drawOne(G,pi,room);log(room,`${pl.name} Surge — draws 2.`);}else{drawOne(G,target,room);log(room,`${pl.name} Surge — forces ${G.players[target].name}.`);}broadcast(roomCode);}
+  if(type==='PLAY_TRASH_DIVER'){
+    spend(cardId);
+    const taken=G.discard.splice(-2);
+    const kept=[];
+    for(const c of taken){
+      if(c.n==='Rat'){ G.pile++; }
+      else { kept.push(c); pl.hand.push(c); }
+    }
+    log(room,`${pl.name} Trash Diver — recovers ${kept.map(c=>c.n).join(', ')||'nothing'}.`,'sys');
+    broadcast(roomCode);
+  }
   if(type==='PLAY_INHERITANCE'){spend(cardId);if(boost)spendFood();G.bounties=(G.bounties||[]);G.bounties.push({placer:pi,target,keep:boost?4:2});log(room,`${pl.name} Inheritance on ${G.players[target].name}.`);broadcast(roomCode);}
   if(type==='PLAY_SHAKEDOWN') {
     spend(cardId); if(boost) spendFood();
