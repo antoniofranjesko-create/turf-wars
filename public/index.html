@@ -94,15 +94,14 @@ const socket = io();
 
 const DEFS = {
   "Rat":{cat:"engine",ds:"When drawn: zoned immediately."},
-  "Health Inspection":{cat:"attack",ds:"Fire a rat from targets zone. They lose 1 HP. Each zone once per turn. Blockable."},
+  "Health Inspection":{cat:"attack",ds:"ALL rats in targets zone detonate to pile. Target loses 1 HP per rat. Cat protects individual rats. Blockable. Zone-once."},
   "Hot Ratato 1":{cat:"attack",ds:"Send 1 rat 1 seat clockwise. Blockable.",boost:"Send 2 rats (needs 2+ rats in zone)."},
   "Hot Ratato 2":{cat:"attack",ds:"Send 1 rat 2 seats clockwise. Blockable.",boost:"Send 2 rats (needs 2+ rats in zone)."},
   "Hot Ratato 3":{cat:"attack",ds:"Send 1 rat 3 seats clockwise. Blockable.",boost:"Send 2 rats (needs 2+ rats in zone)."},
   "Hot Ratato CCW 1":{cat:"attack",ds:"Send 1 rat 1 seat anticlockwise. Blockable.",boost:"Send 2 rats (needs 2+ rats in zone)."},
   "Hot Ratato CCW 2":{cat:"attack",ds:"Send 1 rat 2 seats anticlockwise. Blockable.",boost:"Send 2 rats (needs 2+ rats in zone)."},
-  "Held Rat":{cat:"engine",ds:"Place a rat from the pile into any players zone."},
-  "Infestation":{cat:"engine",ds:"Take 1 rat from pile, place on top of deck.",boost:"Take from own zone instead."},
-  "Plague":{cat:"engine",ds:"Take up to 3 rats from pile, place on top of deck."},
+  "Special Delivery":{cat:"engine",ds:"Place 1 rat from the pile into any players zone."},
+  "Infestation":{cat:"engine",ds:"Take 1 rat from pile, place on top of deck.",boost:"Take from own zone instead — place 3 rats on top of deck."},
   "Block":{cat:"defence",ds:"Reactive. Cancel a Health Inspection or Hot Ratato aimed at you.",boost:"Redirect to another valid target."},
   "Fortify":{cat:"defence",ds:"Zone immune to attacks and Chilli until your next turn."},
   "Exterminator":{cat:"defence",ds:"Remove 1 rat from your zone to the pile.",boost:"Remove 2."},
@@ -113,17 +112,17 @@ const DEFS = {
   "Mark 2.0":{cat:"control",ds:"Next rat drawn from deck goes to named players zone."},
   "Setup":{cat:"control",ds:"Look at top 2 cards, keep 1. Other goes back on top.",boost:"Keep 2."},
   "Shakedown":{cat:"control",ds:"Name a card - target hands over 1 copy if held.",boost:"See their hand first."},
-  "Inheritance":{cat:"control",ds:"If target eliminated before your next turn, keep 2 of their cards.",boost:"Keep 4."},
-  "Laundering":{cat:"control",ds:"Discard up to 3 cards. Draw the same number."},
+  "Inheritance":{cat:"control",ds:"If target is eliminated, collect 2 random cards from their hand.",boost:"Collect 4."},
   "Zone Swap":{cat:"control",ds:"Swap your entire rat zone with any other players zone. 5-rat death checks apply immediately."},
   "Surge":{cat:"control",ds:"Draw 2 yourself OR force any player to draw 1."},
+  "Trash Diver":{cat:"control",ds:"Take the last 2 discarded cards into your hand. Rats go to pile. WD cards allowed."},
   "Russian Roulette":{cat:"gamble",ds:"Uses 1 rat from the pile. Shuffled with 1 card from each other player. Everyone draws 1 blind.",boost:"Use a rat from your own zone instead."},
   "Stakeout":{cat:"control",ds:"Name a card - target hands over 1 copy if held. (Same as Shakedown)",boost:"Take ALL copies of that card from targets hand."},
   "Scout":{cat:"info",ds:"Look at top 5 cards, keep 1. Others go back on top.",boost:"Keep 2."},
   "Chilli":{cat:"buff",ds:"Attach to opponents rat. Detonates by end of your next turn: 1 HP. Blockable."},
-  "Rattatouli":{cat:"buff",ds:"A rat in your zone becomes a Food card in your hand."},
+  "Rattatouli":{cat:"buff",ds:"Convert a rat in your zone into a Food card in your hand."},
   "Rat Dividend":{cat:"buff",ds:"Draw 1 card per rat in your zone."},
-  "Pregnant Rat":{cat:"buff",ds:"Attach to opponents rat. Next turn it becomes 2 rats."},
+  "Pregnant Rat":{cat:"buff",ds:"Nerf: attach to opponents rat — births into their zone next turn. Buff: attach to your own rat — newborn goes into any other players zone."},
   "Rat Away":{cat:"defence",ds:"At the start of your next turn, ALL rats in your zone return to the pile."},
   "Rat Territorial":{cat:"buff",ds:"Attach to a rat in your zone. No rats may enter your zone while this rat remains."},
   "Cat":{cat:"defence",ds:"Attach to any rat. Blocks the next Health Inspection targeting that rat, then is discarded.",boost:"Blocks 2 inspections instead of 1."},
@@ -134,8 +133,8 @@ const DEFS = {
   "WD: Rat Run CW":{cat:"wd",ds:"When drawn: every players first rat moves clockwise."},
   "WD: Rat Run CCW":{cat:"wd",ds:"When drawn: every players first rat moves anticlockwise."},
   "WD: Audit":{cat:"wd",ds:"When drawn: player(s) with most cards discard 1."},
-  "WD: Curfew":{cat:"wd",ds:"When drawn: player with most rats moves 1 rat anywhere."},
-  "WD: Health Inspection":{cat:"wd",ds:"When drawn: if you have 1+ rats, 1 rat fires and you lose 1 HP."},
+
+  "WD: Health Inspection":{cat:"wd",ds:"When drawn: 1 rat fires from your zone to pile, you lose 1 HP. Semi only — does not detonate all rats."},
 };
 
 function PeekModal({pm, peekSel, setPeekSel, act, DEFS}) {
@@ -329,9 +328,8 @@ function App() {
     switch(c.n){
       case 'Health Inspection': return opps.some(canHI);
       case 'Hot Ratato 1': case 'Hot Ratato 2': case 'Hot Ratato 3': case 'Hot Ratato CCW 1': case 'Hot Ratato CCW 2': return zone.length>0&&getCWTarget(c.n).length>0;
-      case 'Held Rat': return G.pile>0;
+      case 'Special Delivery': return G.pile>0;
       case 'Infestation': return G.pile>0||(zone.length>0&&hasFood());
-      case 'Plague': return G.pile>0;
       case 'Exterminator': case 'Rattatouli': case 'Rat Dividend': return zone.length>0;
       case 'Kleptomaniac': return zone.length>0&&opps.some(o=>o.handCount>0||(o.hand&&o.hand.length>0));
       case 'Russian Roulette': return G.pile>0||zone.length>0;
@@ -344,8 +342,8 @@ function App() {
       }
       case 'Chilli': case 'Pregnant Rat': return opps.some(o=>o.zone.length>0&&!o.fortify&&!touched.includes(o.i));
       case 'Block': case 'Ambush': case 'Redirect CW': case 'Redirect CCW': return false;
-      case 'Laundering': return (me.hand||[]).length>1;
       case 'Shakedown': case 'Stakeout': case 'Mark': case 'Mark 2.0': case 'Inheritance': case 'Surge': case 'Zone Swap': return opps.length>0;
+      case 'Trash Diver': return (G.discard||[]).length>=2;
       default: return true;
     }
   }
@@ -354,7 +352,7 @@ function App() {
     const c=(me.hand||[]).find(x=>x.id===cardId);
     if(!c||!playable(c)) return;
     const zone=me.zone||[];
-    if(c.n==='Health Inspection'){ask('Inspect whom?',oppList(canHI),t=>{const T=G.players[t];const fire=zi=>act({type:'PLAY_HEALTH_INSPECTION',cardId,target:t,ratZi:zi});if(T.zone.some(r=>r.att))ask('Which rat?',T.zone.map((r,i)=>({label:ratLabel(r,i),value:i})),fire);else fire(0);});return;}
+    if(c.n==='Health Inspection'){ask('Inspect whom?',oppList(canHI),t=>act({type:'PLAY_HEALTH_INSPECTION',cardId,target:t,ratZi:0}));return;}
     if(c.n==='Hot Ratato 1'||c.n==='Hot Ratato 2'||c.n==='Hot Ratato 3'||c.n==='Hot Ratato CCW 1'||c.n==='Hot Ratato CCW 2'){
       const tgts=getCWTarget(c.n);
       if(!tgts.length)return;
@@ -369,9 +367,8 @@ function App() {
       else doFire(false);
       return;
     }
-    if(c.n==='Held Rat'){ask('Place rat into whose zone?',G.players.filter(p=>p.alive).map(p=>({label:p.name+(p.i===pi?' (you)':''),value:p.i,sub:`${p.zone.length} rats`})),t=>act({type:'PLAY_HELD_RAT',cardId,target:t}));return;}
+    if(c.n==='Special Delivery'){ask('Special Delivery — place rat into whose zone?',G.players.filter(p=>p.alive).map(p=>({label:p.name+(p.i===pi?' (you)':''),value:p.i,sub:`${p.zone.length} rats`})),t=>act({type:'PLAY_SPECIAL_DELIVERY',cardId,target:t}));return;}
     if(c.n==='Infestation'){askBoost(c,boost=>act({type:'PLAY_INFESTATION',cardId,boost}));return;}
-    if(c.n==='Plague'){ask('How many rats?',Array.from({length:Math.min(3,G.pile)},(_,i)=>({label:String(i+1),value:i+1})),count=>act({type:'PLAY_PLAGUE',cardId,count}));return;}
     if(c.n==='Setup'){askBoost(c,boost=>act({type:'PLAY_SETUP',cardId,boost}));return;}
     if(c.n==='Fortify'){act({type:'PLAY_FORTIFY',cardId});return;}
     if(c.n==='Exterminator'){askBoost(c,boost=>ask('Remove which rat?',zone.map((r,i)=>({label:ratLabel(r,i),value:i})),zi=>act({type:'PLAY_EXTERMINATOR',cardId,ratZi:zi,boost})));return;}
@@ -390,14 +387,13 @@ function App() {
       ask('Name the card you demand:',cardOpts,cardName=>act({type:'PLAY_SHAKEDOWN',cardId,target:t,cardName,boost}));
     }));return;}
     if(c.n==='Inheritance'){askBoost(c,boost=>ask('Inheritance — whom?',oppList(),t=>act({type:'PLAY_INHERITANCE',cardId,target:t,boost})));return;}
-    if(c.n==='Laundering'){const max=Math.min(3,(me.hand||[]).length-1);ask(`Discard how many? (max ${max})`,Array.from({length:max},(_,i)=>({label:String(i+1),value:i+1})),n=>{const pickable=(me.hand||[]).filter(x=>x.id!==cardId);const picked=[];const step=k=>{if(k>=n){act({type:'PLAY_LAUNDERING',cardId,cardIds:picked});return;}ask(`Discard ${k+1}/${n}:`,pickable.filter(x=>!picked.includes(x.id)).map(x=>({label:x.n,value:x.id})),id=>{picked.push(id);step(k+1);});};step(0);});return;}
     if(c.n==='Zone Swap'){ask('Swap zones with whom?',oppList(),t=>act({type:'PLAY_ZONE_SWAP',cardId,target:t}));return;}
     if(c.n==='Surge'){ask('Surge:',[{label:'Draw 2 yourself',value:'self'},{label:'Force another to draw 1',value:'force'}],v=>{if(v==='self')act({type:'PLAY_SURGE',cardId,target:pi});else ask('Force whom?',oppList(),t=>act({type:'PLAY_SURGE',cardId,target:t}));});return;}
     if(c.n==='Russian Roulette'){askBoost(c,boost=>act({type:'PLAY_RUSSIAN_ROULETTE',cardId,boost}));return;}
     if(c.n==='Chilli'){ask("Attach Chilli to whose rat?",oppList(o=>o.zone.length>0&&!o.fortify&&!touched.includes(o.i)),t=>ask('Which rat?',G.players[t].zone.map((r,i)=>({label:ratLabel(r,i),value:i})),zi=>act({type:'PLAY_CHILLI',cardId,target:t,ratZi:zi})));return;}
     if(c.n==='Rattatouli'){ask('Convert which rat?',zone.map((r,i)=>({label:ratLabel(r,i),value:i})),zi=>act({type:'PLAY_RATTATOULI',cardId,ratZi:zi}));return;}
     if(c.n==='Rat Dividend'){act({type:'PLAY_RAT_DIVIDEND',cardId});return;}
-    if(c.n==='Pregnant Rat'){ask("Attach to whose rat?",oppList(o=>o.zone.length>0&&!o.fortify&&!touched.includes(o.i)),t=>ask('Which rat?',G.players[t].zone.map((r,i)=>({label:ratLabel(r,i),value:i})),zi=>act({type:'PLAY_PREGNANT_RAT',cardId,target:t,ratZi:zi})));return;}
+    if(c.n==='Pregnant Rat'){ask('Pregnant Rat — nerf (opponents rat) or buff (your rat)?',[{label:'Nerf — attach to opponents rat (births in their zone)',value:'nerf'},{label:'Buff — attach to your rat (newborn goes to any zone)',value:'buff'}],mode=>{if(mode==='nerf'){ask('Attach to whose rat?',oppList(o=>o.zone.length>0&&!o.fortify&&!touched.includes(o.i)),t=>ask('Which rat?',G.players[t].zone.map((r,i)=>({label:ratLabel(r,i),value:i})),zi=>act({type:'PLAY_PREGNANT_RAT',cardId,target:t,ratZi:zi,mode:'nerf'})));} else {ask('Attach to which of your rats?',(me.zone||[]).map((r,i)=>({label:ratLabel(r,i),value:i})),zi=>ask('Newborn goes to whose zone?',oppList(),t=>act({type:'PLAY_PREGNANT_RAT',cardId,target:pi,ratZi:zi,adoptTarget:t,mode:'buff'})));} });return;}
     if(c.n==='Rat Away'){act({type:'PLAY_RAT_AWAY',cardId});return;}
     if(c.n==='Kleptomaniac'){askBoost(c,boost=>act({type:'PLAY_KLEPTOMANIAC',cardId,boost}));return;}
     if(c.n==='Rat Territorial'){ask('Attach to which of your rats?',zone.map((r,i)=>({label:ratLabel(r,i),value:i})),zi=>act({type:'PLAY_RAT_TERRITORIAL',cardId,ratZi:zi}));return;}
@@ -422,6 +418,7 @@ function App() {
       });return;
     }
     if(c.n==='Scout'){askBoost(c,boost=>act({type:'PLAY_SCOUT',cardId,boost}));return;}
+    if(c.n==='Trash Diver'){act({type:'PLAY_TRASH_DIVER',cardId});return;}
   }
 
   function renderReaction(){
@@ -542,7 +539,7 @@ function App() {
       <h4>Rats &amp; your zone</h4>
       <p>When you draw a Rat card it goes straight into your zone — not your hand. Rats in your zone make you a target. If 5 rats are ever in your zone at once — <b>instant death</b>.</p>
       <h4>How you take damage</h4>
-      <p>When an opponent plays <b>Health Inspection</b> targeting you: one rat leaves your zone to the pile, and you lose 1 HP. No rats = can't be inspected. At 0 HP you're eliminated.</p>
+      <p>When an opponent plays <b>Health Inspection</b> targeting you: ALL rats in your zone fire to the pile, and you lose 1 HP per rat. Cat protects individual rats. No rats = fizzles. At 0 HP you're eliminated.</p>
       <h4>Moving rats</h4>
       <p><b>Hot Ratato</b> sends a rat from your zone into another player's zone (1–3 seats clockwise or anticlockwise). The goal: load up opponents' zones, then inspect them.</p>
       <h4>Key cards</h4>
