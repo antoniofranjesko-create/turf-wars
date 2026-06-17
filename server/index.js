@@ -330,7 +330,8 @@ function runAITurn(G, pi, room) {
       }
     }
     // Hot Ratato
-    if(has('Hot Ratato') && pl.zone.length) {
+    const hrCard = has('Hot Ratato CW') || has('Hot Ratato CCW');
+    if(hrCard && pl.zone.length) {
       const cwCands=[];
       for(let dist=1;dist<=3;dist++){
         let steps=0,i=pi;
@@ -339,7 +340,7 @@ function runAITurn(G, pi, room) {
       }
       if(cwCands.length) {
         const pick=cwCands[Math.floor(Math.random()*cwCands.length)];
-        const boost=hasFood()&&pl.zone.length>=2; use('Hot Ratato'); if(boost)useFood();
+        const boost=hasFood()&&pl.zone.length>=2; use(hrCard.n||'Hot Ratato CW'); if(boost)useFood();
         G.touchedZones.push(pick.i);
         // reaction check
         const tgt=G.players[pick.i];
@@ -422,14 +423,13 @@ function handleAction(roomCode, pi, action) {
   }
   if(type==='PLAY_HOT_RATATO') {
     if(!pl.zone.length) return;
-    // dist fixed by card name if not supplied
     const card = pl.hand.find(c=>c.id===cardId);
     const cn = card ? card.n : '';
     const isCCW = cn.includes('CCW');
-    const fixedDist = cn.includes('2') ? 2 : cn.includes('3') ? 3 : (dist||1);
+    const chosenDist = Math.min(Math.max(dist||1, 1), 3);
     spend(cardId); if(boost && pl.zone.length>=2) spendFood();
-    const cwIdx=getCWTarget(G,pi,fixedDist,isCCW); if(cwIdx===-1) return;
-    log(room,`${pl.name} plays Hot Ratato (${fixedDist} seat${fixedDist>1?'s':''}) to ${G.players[cwIdx].name}.`);
+    const cwIdx=getCWTarget(G,pi,chosenDist,isCCW); if(cwIdx===-1) return;
+    log(room,`${pl.name} plays Hot Ratato ${isCCW?'CCW':'CW'} (${chosenDist} seat${chosenDist>1?'s':''}) to ${G.players[cwIdx].name}.`);
     G.touchedZones.push(cwIdx);
     const tgt=G.players[cwIdx]; const ratIdx=ratZi??0;
     if(tgt.hand.some(c=>['Block','Redirect CW','Redirect CCW'].includes(c.n))){G.pendingReaction={kind:'HR',from:pi,to:cwIdx,ratZi:ratIdx,boost:!!boost};return broadcast(roomCode);}
@@ -527,7 +527,7 @@ function handleAction(roomCode, pi, action) {
     // "Hot Ratato" matches any HR variant
     const isHR = cardName==='Hot Ratato';
     const idx = isHR
-      ? tgt.hand.findIndex(c=>c.n.startsWith('Hot Ratato'))
+      ? tgt.hand.findIndex(c=>c.n==='Hot Ratato CW'||c.n==='Hot Ratato CCW')
       : tgt.hand.findIndex(c=>c.n===cardName);
     if(idx>=0){ pl.hand.push(tgt.hand.splice(idx,1)[0]); log(room,`${pl.name} shakes down ${tgt.name} — takes a ${tgt.hand[idx]?.n||cardName}.`); }
     else log(room,`${pl.name} shakes down ${tgt.name} for ${cardName} — miss.`);
@@ -538,7 +538,7 @@ function handleAction(roomCode, pi, action) {
     const tgt=G.players[target];
     const isHR = action.cardName==='Hot Ratato';
     const matches = isHR
-      ? tgt.hand.filter(c=>c.n.startsWith('Hot Ratato'))
+      ? tgt.hand.filter(c=>c.n==='Hot Ratato CW'||c.n==='Hot Ratato CCW')
       : tgt.hand.filter(c=>c.n===action.cardName);
     if(boost) {
       // take ALL matching cards
