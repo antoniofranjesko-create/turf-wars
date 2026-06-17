@@ -9,7 +9,7 @@ const DECK_TABLE = {
   "Hot Ratato CW":[5,5,5,5,5],
   "Hot Ratato CCW":[5,5,5,5,5],
         "Block":[6,6,6,6,6],
-  "Food":[12,12,12,12,12],
+  "Food":[10,10,10,10,10],
   "Special Delivery":[3,3,3,3,3],
   "Infestation":[3,3,3,3,3],
   "Setup":[3,3,3,3,3],
@@ -42,7 +42,7 @@ const DECK_TABLE = {
   "WD: Rat Run CCW":[1,1,1,1,1],
   "WD: Audit":[1,1,1,1,1],
 
-  "WD: Health Inspection":[3,3,3,3,3],
+  "WD: Health Inspection":[2,2,2,2,2],
 };
 
 let _id = 0;
