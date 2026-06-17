@@ -160,6 +160,30 @@ function PeekModal({pm, peekSel, setPeekSel, act, DEFS}) {
   );
 }
 
+function Food3Modal({pm, act}) {
+  const [sel, setSel] = React.useState([]);
+  const toggle = id => setSel(s => s.includes(id) ? s.filter(x=>x!==id) : [...s,id].slice(0,3));
+  return (
+    <div className="overlay"><div className="modal">
+      <h4>Food x3 - keep up to 3 cards</h4>
+      <p style={{fontSize:'0.85em',opacity:.7,margin:'4px 0 10px'}}>Click cards to select, then confirm.</p>
+      <div className="opts">
+        {pm.stolen.map((card,i)=>(
+          <button key={i}
+            style={{background:sel.includes(card.id)?'var(--amber)':'',color:sel.includes(card.id)?'#000':''}}
+            onClick={()=>toggle(card.id)}>
+            {card.n}{sel.includes(card.id)?' checkmark':''}
+          </button>
+        ))}
+      </div>
+      <button style={{marginTop:10}} onClick={()=>act({type:'FOOD3_KEEP',cardIds:sel})}>
+        Confirm — keep {sel.length} card{sel.length!==1?'s':''}
+      </button>
+      <button style={{marginTop:6,opacity:.6}} onClick={()=>act({type:'FOOD3_KEEP',cardIds:[]})}>Keep none</button>
+    </div></div>
+  );
+}
+
 function App() {
   const [phase, setPhase]       = useState('lobby');
   const [name, setName]         = useState('');
@@ -410,8 +434,8 @@ function App() {
     if(c.n==='Food'){
       const fc=(me.hand||[]).filter(x=>x.n==='Food').length;
       const opts=[];
-      if(zone.length>0&&fc>=2) opts.push({label:'Spend 2 Food — bribe a rat into the deck',value:'f2',sub:'Removes 1 rat from your zone, shuffled into deck'});
-      if(fc>=3&&(me.hand||[]).some(c=>c.n!=='Food')) opts.push({label:'Spend 3 Food — force all to discard 1, keep up to 3',value:'f3',sub:'Force all opponents to discard 1 card'});
+      if(fc>=2&&zone.length>0) opts.push({label:'Spend 2 Food — bribe a rat out of your zone into deck',value:'f2',sub:'Need 2 Food + 1 rat in zone'});
+      if(fc>=3) opts.push({label:'Spend 3 Food — force all others to discard 1, keep up to 3',value:'f3',sub:'Need 3 Food'});
       if(!opts.length) return;
       ask('Food — choose action:',opts,v=>{
         if(v==='f2') act({type:'PLAY_FOOD_2',cardId});
@@ -519,22 +543,7 @@ function App() {
 
       {G.pendingModal&&G.pendingModal.pi===pi&&(G.pendingModal.kind==='SETUP'||G.pendingModal.kind==='SCOUT')&&
         <PeekModal pm={G.pendingModal} peekSel={peekSel} setPeekSel={setPeekSel} act={act} DEFS={DEFS}/>}
-      {G.pendingModal&&G.pendingModal.pi===pi&&G.pendingModal.kind==='FOOD3'&&(()=>{
-        const pm=G.pendingModal; const [sel,setSel]=React.useState([]);
-        const toggle=id=>setSel(s=>s.includes(id)?s.filter(x=>x!==id):[...s,id].slice(0,3));
-        return (<div className="overlay"><div className="modal">
-          <h4>Food x3 — keep up to 3 cards</h4>
-          <div className="opts">
-            {pm.stolen.map((card,i)=><button key={i}
-              style={{background:sel.includes(card.id)?'var(--amber)':''}}
-              onClick={()=>toggle(card.id)}>{card.n}{sel.includes(card.id)?' ✓':''}</button>)}
-          </div>
-          <button style={{marginTop:10}} onClick={()=>act({type:'FOOD3_KEEP',cardIds:sel})}>
-            Keep {sel.length} card{sel.length!==1?'s':''}
-          </button>
-          <button style={{marginTop:6,opacity:.6}} onClick={()=>act({type:'FOOD3_KEEP',cardIds:[]})}>Keep none</button>
-        </div></div>);
-      })()}
+      {G.pendingModal&&G.pendingModal.pi===pi&&G.pendingModal.kind==='FOOD3'&&<Food3Modal pm={G.pendingModal} act={act}/>}
       {modal&&!awaitingReaction&&(<div className="overlay"><div className="modal">
         <h4>{modal.prompt}</h4>
         <div className="opts">
