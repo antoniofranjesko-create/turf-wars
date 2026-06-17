@@ -494,18 +494,26 @@ function handleAction(roomCode, pi, action) {
     const stolen=[];
     const alive=G.players.filter(p=>p.alive&&p.i!==pi);
     for(const o of alive) { if(o.hand.length){const ri=Math.floor(Math.random()*o.hand.length);stolen.push(o.hand.splice(ri,1)[0]);} }
-    // keep up to 3 — handled client side via FOOD3_KEEP
-    G.pendingModal={kind:'FOOD3',pi,stolen};
-    log(room,`${pl.name} spends 3 Food — all others discard 1, keeper chooses up to 3.`,'dmg');
+    log(room,`${pl.name} spends 3 Food — all others discard 1.`,'dmg');
+    // if nothing to keep, resolve immediately
+    const keepable=stolen.filter(c=>c.n!=='Rat'&&!c.n.startsWith('WD:'));
+    if(keepable.length===0){
+      G.discard.push(...stolen);
+      log(room,`Nothing to keep.`,'sys');
+      broadcast(roomCode); return;
+    }
+    G.pendingModal={kind:'FOOD3',pi,stolen:keepable};
     broadcast(roomCode); return;
   }
   if(type==='FOOD3_KEEP') {
     if(!G.pendingModal||G.pendingModal.kind!=='FOOD3') return;
     const {stolen}=G.pendingModal; G.pendingModal=null;
-    const keep=(action.cardIds||[]).slice(0,3);
-    for(const cid of keep){const c=stolen.find(x=>x.id===cid);if(c)pl.hand.push(c);}
-    const discard=stolen.filter(c=>!keep.includes(c.id));
-    G.discard.push(...discard);
+    const keepIds=(action.cardIds||[]).slice(0,3);
+    const kept=stolen.filter(c=>keepIds.includes(c.id));
+    const leftover=stolen.filter(c=>!keepIds.includes(c.id));
+    pl.hand.push(...kept);
+    G.discard.push(...leftover);
+    log(room,`${pl.name} keeps ${kept.length} card(s) from Food sweep.`,'sys');
     broadcast(roomCode); return;
   }
   if(type==='PLAY_SURGE'){spend(cardId);if(target===pi){drawOne(G,pi,room);drawOne(G,pi,room);log(room,`${pl.name} Surge — draws 2.`);}else{drawOne(G,target,room);log(room,`${pl.name} Surge — forces ${G.players[target].name}.`);}broadcast(roomCode);}
