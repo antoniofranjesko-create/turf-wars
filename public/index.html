@@ -95,11 +95,8 @@ const socket = io();
 const DEFS = {
   "Rat":{cat:"engine",ds:"When drawn: zoned immediately."},
   "Health Inspection":{cat:"attack",ds:"ALL rats in targets zone detonate to pile. Target loses 1 HP per rat. Cat protects individual rats. Blockable. Zone-once."},
-  "Hot Ratato 1":{cat:"attack",ds:"Send 1 rat 1 seat clockwise. Blockable.",boost:"Send 2 rats (needs 2+ rats in zone)."},
-  "Hot Ratato 2":{cat:"attack",ds:"Send 1 rat 2 seats clockwise. Blockable.",boost:"Send 2 rats (needs 2+ rats in zone)."},
-  "Hot Ratato 3":{cat:"attack",ds:"Send 1 rat 3 seats clockwise. Blockable.",boost:"Send 2 rats (needs 2+ rats in zone)."},
-  "Hot Ratato CCW 1":{cat:"attack",ds:"Send 1 rat 1 seat anticlockwise. Blockable.",boost:"Send 2 rats (needs 2+ rats in zone)."},
-  "Hot Ratato CCW 2":{cat:"attack",ds:"Send 1 rat 2 seats anticlockwise. Blockable.",boost:"Send 2 rats (needs 2+ rats in zone)."},
+  "Hot Ratato CW":{cat:"attack",ds:"Send 1 rat 1-3 seats clockwise (you choose). Blockable.",boost:"Send 2 rats (needs 2+ rats in zone)."},
+  "Hot Ratato CCW":{cat:"attack",ds:"Send 1 rat 1-3 seats anticlockwise (you choose). Blockable.",boost:"Send 2 rats (needs 2+ rats in zone)."},
   "Special Delivery":{cat:"engine",ds:"Place 1 rat from the pile into any players zone."},
   "Infestation":{cat:"engine",ds:"Take 1 rat from pile, place on top of deck.",boost:"Take from own zone instead — place 3 rats on top of deck."},
   "Block":{cat:"defence",ds:"Reactive. Cancel a Health Inspection or Hot Ratato aimed at you.",boost:"Redirect to another valid target."},
@@ -327,7 +324,7 @@ function App() {
     const zone=me.zone||[];
     switch(c.n){
       case 'Health Inspection': return opps.some(canHI);
-      case 'Hot Ratato 1': case 'Hot Ratato 2': case 'Hot Ratato 3': case 'Hot Ratato CCW 1': case 'Hot Ratato CCW 2': return zone.length>0&&getCWTarget(c.n).length>0;
+      case 'Hot Ratato CW': case 'Hot Ratato CCW': return zone.length>0&&opps.length>0;
       case 'Special Delivery': return G.pile>0;
       case 'Infestation': return G.pile>0||(zone.length>0&&hasFood());
       case 'Exterminator': case 'Rattatouli': case 'Rat Dividend': return zone.length>0;
@@ -353,18 +350,25 @@ function App() {
     if(!c||!playable(c)) return;
     const zone=me.zone||[];
     if(c.n==='Health Inspection'){ask('Inspect whom?',oppList(canHI),t=>act({type:'PLAY_HEALTH_INSPECTION',cardId,target:t,ratZi:0}));return;}
-    if(c.n==='Hot Ratato 1'||c.n==='Hot Ratato 2'||c.n==='Hot Ratato 3'||c.n==='Hot Ratato CCW 1'||c.n==='Hot Ratato CCW 2'){
-      const tgts=getCWTarget(c.n);
-      if(!tgts.length)return;
-      const {dist,target}=tgts[0];
-      const canBoost=DEFS[c.n]&&DEFS[c.n].boost&&hasFood()&&zone.length>=2;
-      const fire=(boost,zi)=>act({type:'PLAY_HOT_RATATO',cardId,target,dist,ratZi:zi,boost});
-      const doFire=boost=>{
-        if(zone.some(r=>r.atts&&r.atts.length))ask('Which rat?',zone.map((r,i)=>({label:ratLabel(r,i),value:i})),zi=>fire(boost,zi));
-        else fire(boost,0);
-      };
-      if(canBoost) ask(`${c.n} — boost? Send 2 rats (${dist} seat${dist>1?'s':''})`,[{label:'Boost (1 Food)',value:true},{label:'No boost',value:false}],boost=>doFire(boost));
-      else doFire(false);
+    if(c.n==='Hot Ratato CW'||c.n==='Hot Ratato CCW'){
+      const isCCW=c.n==='Hot Ratato CCW';
+      const maxDist=Math.min(3,opps.length);
+      const distOpts=Array.from({length:maxDist},(_,i)=>({label:`${i+1} seat${i>0?'s':''}`,value:i+1}));
+      ask(`Hot Ratato ${isCCW?'CCW':'CW'} — how far?`,distOpts,dist=>{
+        const aliveSeats=G.players.filter(p=>p.alive);
+        const myIdx=aliveSeats.findIndex(p=>p.i===pi);
+        const d=isCCW?-dist:dist;
+        const tgtIdx=((myIdx+d)%aliveSeats.length+aliveSeats.length)%aliveSeats.length;
+        const target=aliveSeats[tgtIdx].i;
+        const canBoost=DEFS[c.n]&&DEFS[c.n].boost&&hasFood()&&zone.length>=2;
+        const fire=(boost,zi)=>act({type:'PLAY_HOT_RATATO',cardId,target,dist,ratZi:zi,boost});
+        const doFire=boost=>{
+          if(zone.some(r=>r.atts&&r.atts.length))ask('Which rat?',zone.map((r,i)=>({label:ratLabel(r,i),value:i})),zi=>fire(boost,zi));
+          else fire(boost,0);
+        };
+        if(canBoost) ask(`Boost? Send 2 rats`,[{label:'Boost (1 Food)',value:true},{label:'No boost',value:false}],boost=>doFire(boost));
+        else doFire(false);
+      });
       return;
     }
     if(c.n==='Special Delivery'){ask('Special Delivery — place rat into whose zone?',G.players.filter(p=>p.alive).map(p=>({label:p.name+(p.i===pi?' (you)':''),value:p.i,sub:`${p.zone.length} rats`})),t=>act({type:'PLAY_SPECIAL_DELIVERY',cardId,target:t}));return;}
@@ -377,13 +381,13 @@ function App() {
     if(c.n==='Stakeout'){
       askBoost(c,boost=>{
         ask('Shakedown 2.0 — whom?',oppList(p=>p.handCount>0||(p.hand&&p.hand.length>0)),t=>{
-          const cardOpts=[{label:'Hot Ratato (any)',value:'Hot Ratato',sub:'Matches all HR variants'},...Object.keys(DEFS).filter(n=>n!=='Rat'&&!n.startsWith('WD:')&&!n.startsWith('Hot Ratato')).map(n=>({label:n,value:n}))];
+          const cardOpts=[{label:'Hot Ratato CW / CCW',value:'Hot Ratato CW',sub:'Matches Hot Ratato CW and CCW'},...Object.keys(DEFS).filter(n=>n!=='Rat'&&!n.startsWith('WD:')&&n!=='Hot Ratato CW'&&n!=='Hot Ratato CCW').map(n=>({label:n,value:n}))];
           ask('Name the card you demand:',cardOpts,cardName=>act({type:'PLAY_STAKEOUT',cardId,target:t,cardName,boost}));
         });
       });return;
     }
     if(c.n==='Shakedown'){askBoost(c,boost=>ask('Shake down whom?',oppList(p=>p.handCount>0||(p.hand&&p.hand.length>0)),t=>{
-      const cardOpts=[{label:'Hot Ratato (any)',value:'Hot Ratato',sub:'Matches Hot Ratato 1, 2, 3, CCW'},...Object.keys(DEFS).filter(n=>n!=='Rat'&&!n.startsWith('WD:')&&!n.startsWith('Hot Ratato')).map(n=>({label:n,value:n}))];
+      const cardOpts=[{label:'Hot Ratato CW/CCW',value:'Hot Ratato CW',sub:'Matches CW and CCW'},...Object.keys(DEFS).filter(n=>n!=='Rat'&&!n.startsWith('WD:')&&n!=='Hot Ratato CW'&&n!=='Hot Ratato CCW').map(n=>({label:n,value:n}))];
       ask('Name the card you demand:',cardOpts,cardName=>act({type:'PLAY_SHAKEDOWN',cardId,target:t,cardName,boost}));
     }));return;}
     if(c.n==='Inheritance'){askBoost(c,boost=>ask('Inheritance — whom?',oppList(),t=>act({type:'PLAY_INHERITANCE',cardId,target:t,boost})));return;}
@@ -541,7 +545,7 @@ function App() {
       <h4>How you take damage</h4>
       <p>When an opponent plays <b>Health Inspection</b> targeting you: ALL rats in your zone fire to the pile, and you lose 1 HP per rat. Cat protects individual rats. No rats = fizzles. At 0 HP you're eliminated.</p>
       <h4>Moving rats</h4>
-      <p><b>Hot Ratato</b> sends a rat from your zone into another player's zone (1–3 seats clockwise or anticlockwise). The goal: load up opponents' zones, then inspect them.</p>
+      <p><b>Hot Ratato CW/CCW</b> sends a rat from your zone 1–3 seats clockwise or anticlockwise (you choose the distance when played). The goal: load up opponents' zones, then Health Inspect them.</p>
       <h4>Key cards</h4>
       <ul>
         <li><b>Block</b> — cancel any attack aimed at you (reactive, play on opponent's turn)</li>
